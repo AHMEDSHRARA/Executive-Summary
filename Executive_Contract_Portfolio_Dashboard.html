@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Executive Contract Portfolio Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js"></script>
+<style>
+:root{
+  --bg:#EEF1F5; --surface:#FFFFFF; --surface2:#F6F8FA; --line:#DDE3EA;
+  --ink:#12202F; --ink2:#5A6B7D; --ink3:#8B99A8;
+  --teal:#12808A; --teal2:#2FB3A8; --tealSoft:#E2F2F1;
+  --gold:#B98A3C; --goldSoft:#F6EEDD;
+  --navy:#0E2233;
+  --pos:#1E9E6A; --neg:#D6543F; --warn:#D89A2B;
+  --shadow:0 1px 2px rgba(16,30,45,.06),0 4px 14px rgba(16,30,45,.07);
+  --radius:14px;
+}
+html[data-theme="dark"]{
+  --bg:#0B1622; --surface:#12212F; --surface2:#182A3C; --line:#243A4E;
+  --ink:#E8EEF4; --ink2:#9FB1C1; --ink3:#6D8093;
+  --teal:#2FB3A8; --teal2:#5ED3C6; --tealSoft:#12333A;
+  --gold:#D9B36A; --goldSoft:#33301F;
+  --pos:#3BC488; --neg:#E9705B; --warn:#E4B04A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);height:100vh;overflow:hidden;font-size:13px}
+#app{display:flex;height:100vh}
+
+/* ---------- LEFT NAV ---------- */
+#nav{width:190px;min-width:190px;background:linear-gradient(180deg,#0E2233,#0A1A28);color:#DCE7EF;display:flex;flex-direction:column;padding:14px 10px;gap:4px}
+html[data-theme="dark"] #nav{background:linear-gradient(180deg,#0E2233,#081420);border-right:1px solid var(--line)}
+#nav .brand{padding:6px 8px 16px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:10px}
+#nav .brand .t1{font-size:15px;font-weight:700;letter-spacing:.4px}
+#nav .brand .t2{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:#8FB6C4;margin-top:3px}
+.navBtn{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:10px;cursor:pointer;color:#B9CBD8;font-weight:600;font-size:12.5px;border:none;background:none;text-align:left;width:100%;transition:background .15s}
+.navBtn svg{width:17px;height:17px;flex:none}
+.navBtn:hover{background:rgba(255,255,255,.07);color:#fff}
+.navBtn.active{background:linear-gradient(90deg,rgba(47,179,168,.28),rgba(47,179,168,.10));color:#fff;box-shadow:inset 3px 0 0 var(--teal2)}
+.navBtn .num{font-size:9.5px;color:#7FA6B4;letter-spacing:1px;display:block}
+#nav .spacer{flex:1}
+#nav .foot{font-size:9.5px;color:#6E8A99;padding:8px;line-height:1.5;border-top:1px solid rgba(255,255,255,.1)}
+
+/* ---------- MAIN ---------- */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#topbar{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+#topbar h1{font-size:16px;font-weight:700;letter-spacing:.2px}
+#topbar .sub{font-size:11px;color:var(--ink2);margin-top:1px}
+#topbar .grow{flex:1}
+.tbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font-weight:600;font-size:12px;cursor:pointer}
+.tbtn:hover{border-color:var(--teal)}
+.tbtn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.tbtn svg{width:14px;height:14px}
+.menuWrap{position:relative}
+.menu{position:absolute;right:0;top:110%;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);min-width:190px;z-index:60;display:none;overflow:hidden}
+.menu.open{display:block}
+.menu button{display:block;width:100%;text-align:left;padding:9px 14px;border:none;background:none;color:var(--ink);font-size:12.5px;cursor:pointer}
+.menu button:hover{background:var(--surface2)}
+.menu .mhead{padding:7px 14px;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--line)}
+
+/* ---------- FILTER BAR ---------- */
+#filterbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+.fLabel{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-right:2px}
+.fsel{position:relative}
+.fsel>button{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font-size:11.5px;font-weight:600;cursor:pointer;max-width:170px}
+.fsel>button .cnt{background:var(--teal);color:#fff;border-radius:20px;padding:0 6px;font-size:10px;line-height:16px}
+.fsel>button.on{border-color:var(--teal);color:var(--teal)}
+.fdrop{position:absolute;top:110%;left:0;z-index:70;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);width:250px;max-height:290px;display:none;flex-direction:column}
+.fdrop.open{display:flex}
+.fdrop input[type=text]{margin:8px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--ink);font-size:12px}
+.fdrop .opts{overflow:auto;padding:0 6px 6px}
+.fdrop label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;font-size:12px;cursor:pointer}
+.fdrop label:hover{background:var(--surface2)}
+.fdrop .fdfoot{display:flex;justify-content:space-between;padding:6px 10px;border-top:1px solid var(--line)}
+.fdrop .fdfoot button{border:none;background:none;color:var(--teal);font-weight:700;font-size:11px;cursor:pointer}
+#clearAll{border:none;background:none;color:var(--neg);font-weight:700;font-size:11.5px;cursor:pointer;padding:6px 8px}
+#filterCtx{font-size:11px;color:var(--ink2);margin-left:auto;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- STAGE (16:9 slide feel) ---------- */
+#stage{flex:1;overflow:auto;padding:14px 18px}
+.page{display:none;grid-gap:12px}
+.page.active{display:grid}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;min-width:0;min-height:0}
+.card h3{font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink2);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
+.card .chartBox{flex:1;position:relative;min-height:0}
+.card canvas{position:absolute;inset:0}
+
+/* KPI cards */
+.kpiRow{display:grid;grid-gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 13px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal)}
+.kpi.gold::before{background:var(--gold)}
+.kpi.neg::before{background:var(--neg)}
+.kpi .kl{font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.kpi .kv{font-size:21px;font-weight:750;margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.kpi .kv .unit{font-size:11px;color:var(--ink2);font-weight:600;margin-left:3px}
+.kpi .ks{font-size:10.5px;color:var(--ink2);margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .ks b.up{color:var(--pos)} .kpi .ks b.down{color:var(--neg)}
+.kpi .na{color:var(--ink3);font-style:italic;font-size:13px}
+
+/* Value cascade strip (signature) */
+#cascade{display:flex;align-items:stretch;gap:0;overflow:hidden}
+.casc{flex:1;position:relative;padding:9px 14px 9px 20px;background:var(--surface);border:1px solid var(--line);border-left:none}
+.casc:first-child{border-left:1px solid var(--line);border-radius:12px 0 0 12px}
+.casc:last-child{border-radius:0 12px 12px 0}
+.casc .cl{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.casc .cv{font-size:16px;font-weight:750;font-variant-numeric:tabular-nums;margin-top:1px}
+.casc .cp{font-size:10px;color:var(--teal);font-weight:700}
+.casc::after{content:"";position:absolute;right:-8px;top:50%;transform:translateY(-50%) rotate(45deg);width:14px;height:14px;background:var(--surface);border-top:1px solid var(--line);border-right:1px solid var(--line);z-index:2}
+.casc:last-child::after{display:none}
+
+/* tables */
+.tblWrap{flex:1;overflow:auto;border-radius:8px;min-height:0}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{position:sticky;top:0;background:var(--surface2);color:var(--ink2);text-transform:uppercase;font-size:9.5px;letter-spacing:.8px;text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);z-index:5;cursor:pointer;white-space:nowrap}
+tbody td{padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:hover{background:var(--surface2);cursor:pointer}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.logo{width:30px;height:30px;border-radius:7px;object-fit:contain;background:#fff;border:1px solid var(--line);padding:2px}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.pill.Active{background:var(--tealSoft);color:var(--teal)}
+.pill.Complete{background:var(--goldSoft);color:var(--gold)}
+.bar{height:6px;border-radius:4px;background:var(--line);position:relative;min-width:60px}
+.bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--teal)}
+.vpos{color:var(--pos);font-weight:700}.vneg{color:var(--neg);font-weight:700}
+
+/* detail modal */
+#modal{position:fixed;inset:0;background:rgba(8,16,26,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:30px}
+#modal.open{display:flex}
+#modalCard{background:var(--surface);border-radius:16px;max-width:880px;width:100%;max-height:88vh;overflow:auto;padding:22px 26px;border:1px solid var(--line)}
+#modalCard .mtop{display:flex;gap:16px;align-items:flex-start}
+#modalCard img.big{width:84px;height:84px;border-radius:14px;object-fit:contain;background:#fff;border:1px solid var(--line);padding:6px}
+#modalCard h2{font-size:16px;line-height:1.35}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.mitem{background:var(--surface2);border-radius:10px;padding:8px 11px}
+.mitem .ml{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.mitem .mv{font-size:12.5px;font-weight:650;margin-top:2px;word-break:break-word}
+.brief{margin-top:14px;background:var(--surface2);border-left:3px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.55;color:var(--ink2)}
+#modalClose{float:right;border:none;background:var(--surface2);border-radius:8px;width:30px;height:30px;font-size:15px;cursor:pointer;color:var(--ink)}
+
+/* layouts per page */
+#pg1{grid-template-columns:repeat(12,1fr);grid-auto-rows:minmax(0,auto)}
+#pg2,#pg3{grid-template-columns:repeat(12,1fr)}
+#pg4{grid-template-columns:1fr}
+.searchbox{padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:var(--ink);font-size:12px;width:250px}
+.chipRow{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--tealSoft);color:var(--teal);border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:700;display:inline-flex;gap:6px;align-items:center}
+.chip button{border:none;background:none;color:inherit;cursor:pointer;font-weight:900}
+input[type=date]{padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);font-size:11.5px}
+@media print{
+  #nav,#topbar .tbtn,.menuWrap,#filterbar .fsel>button:not(.on),#clearAll{display:none!important}
+  body{overflow:visible}#stage{overflow:visible}
+  @page{size:landscape;margin:8mm}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- LEFT NAV -->
+  <nav id="nav">
+    <div class="brand">
+      <div class="t1">RUA Portfolio</div>
+      <div class="t2">Executive MIS · Contracts</div>
+    </div>
+    <button class="navBtn active" data-page="pg1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+      <span><span class="num">01</span>Executive Summary</span>
+    </button>
+    <button class="navBtn" data-page="pg2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="10"/><rect x="10" y="4" width="4" height="16"/><rect x="17" y="13" width="4" height="7"/></svg>
+      <span><span class="num">02</span>Program &amp; Project</span>
+    </button>
+    <button class="navBtn" data-page="pg3">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+      <span><span class="num">03</span>Contract Performance</span>
+    </button>
+    <button class="navBtn" data-page="pg4">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+      <span><span class="num">04</span>Contract Details</span>
+    </button>
+    <div class="spacer"></div>
+    <div class="foot">Program Controls &amp; PMO<br>Data as of <span id="dataDate">—</span></div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <h1 id="pageTitle">Executive Summary</h1>
+        <div class="sub" id="pageSub">CEO-level portfolio overview — all values in SAR</div>
+      </div>
+      <div class="grow"></div>
+      <div class="menuWrap">
+        <button class="tbtn" id="importBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+          Import Excel</button>
+        <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none">
+      </div>
+      <div class="menuWrap">
+        <button class="tbtn" id="exportBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0L8 7m4-4l4 4M4 21h16"/></svg>
+          Export</button>
+        <div class="menu" id="exportMenu">
+          <div class="mhead">Export current data</div>
+          <button data-x="xlsx">Excel (.xlsx) — filtered data</button>
+          <button data-x="csv">CSV — filtered data</button>
+          <div class="mhead">Export current view</div>
+          <button data-x="png">Image (.png)</button>
+          <button data-x="pdf">PDF (print)</button>
+          <button data-x="pptx">PowerPoint (.pptx)</button>
+        </div>
+      </div>
+      <button class="tbtn" id="themeBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+        <span id="themeLbl">Dark</span></button>
+    </div>
+
+    <!-- FILTERS -->
+    <div id="filterbar">
+      <span class="fLabel">Filters</span>
+      <div id="filterSlots"></div>
+      <span class="fLabel" style="margin-left:6px">Sign date</span>
+      <input type="date" id="dateFrom"><input type="date" id="dateTo">
+      <button id="clearAll">✕ Clear all filters</button>
+      <div id="filterCtx">Showing full portfolio</div>
+    </div>
+
+    <div id="stage">
+
+      <!-- ============ PAGE 1 : EXECUTIVE SUMMARY ============ -->
+      <div class="page active" id="pg1">
+        <div class="kpiRow" style="grid-column:1/-1;grid-template-columns:repeat(8,1fr)">
+          <div class="kpi"><div class="kl">Contracts</div><div class="kv" id="k_contracts">—</div><div class="ks" id="k_contracts_s"></div></div>
+          <div class="kpi"><div class="kl">Programs</div><div class="kv" id="k_programs">—</div><div class="ks" id="k_programs_s"></div></div>
+          <div class="kpi"><div class="kl">Projects</div><div class="kv" id="k_projects">—</div><div class="ks" id="k_projects_s"></div></div>
+          <div class="kpi"><div class="kl">Vendors</div><div class="kv" id="k_vendors">—</div><div class="ks" id="k_vendors_s"></div></div>
+          <div class="kpi"><div class="kl">Active</div><div class="kv" id="k_active">—</div><div class="ks" id="k_active_s"></div></div>
+          <div class="kpi gold"><div class="kl">Complete</div><div class="kv" id="k_complete">—</div><div class="ks" id="k_complete_s"></div></div>
+          <div class="kpi neg"><div class="kl">Behind Plan</div><div class="kv" id="k_behind">—</div><div class="ks">Actual &lt; Planned −5 pts</div></div>
+          <div class="kpi"><div class="kl">Portfolio Progress</div><div class="kv" id="k_prog">—</div><div class="ks" id="k_prog_s"></div></div>
+        </div>
+
+        <div id="cascade" style="grid-column:1/-1">
+          <div class="casc"><div class="cl">Original Value</div><div class="cv" id="c_ocv">—</div><div class="cp">&nbsp;</div></div>
+          <div class="casc"><div class="cl">Variations (VOs)</div><div class="cv" id="c_vo">—</div><div class="cp" id="c_vo_p"></div></div>
+          <div class="casc"><div class="cl">Revised Value</div><div class="cv" id="c_rcv">—</div><div class="cp" id="c_rcv_p"></div></div>
+          <div class="casc"><div class="cl">Earned to Date</div><div class="cv" id="c_ev">—</div><div class="cp" id="c_ev_p"></div></div>
+          <div class="casc"><div class="cl">Certified to Date</div><div class="cv" id="c_cert">—</div><div class="cp" id="c_cert_p"></div></div>
+          <div class="casc"><div class="cl">Paid to Date</div><div class="cv" id="c_paid">—</div><div class="cp" id="c_paid_p"></div></div>
+          <div class="casc"><div class="cl">Unbilled Execution</div><div class="cv" id="c_unb">—</div><div class="cp" id="c_unb_p"></div></div>
+        </div>
+
+        <div class="card" style="grid-column:span 5;height:255px">
+          <h3><span class="dot"></span>Financial Cascade — Award → Paid (SAR M)</h3>
+          <div class="chartBox"><canvas id="chWaterfall"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 3;height:255px">
+          <h3><span class="dot"></span>Revised Value by Program</h3>
+          <div class="chartBox"><canvas id="chProgPie"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 2;height:255px">
+          <h3><span class="dot"></span>Contract Status</h3>
+          <div class="chartBox"><canvas id="chStatusPie"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 2;height:255px">
+          <h3><span class="dot"></span>Planned vs Actual</h3>
+          <div class="chartBox"><canvas id="chGauge"></canvas></div>
+        </div>
+
+        <div class="card" style="grid-column:span 7;height:235px">
+          <h3><span class="dot"></span>Awarded Value &amp; Count by Quarter</h3>
+          <div class="chartBox"><canvas id="chQuarter"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 5;height:235px">
+          <h3><span class="dot"></span>Earned · Certified · Paid by Program (SAR M)</h3>
+          <div class="chartBox"><canvas id="chECP"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ============ PAGE 2 : PROGRAM & PROJECT ============ -->
+      <div class="page" id="pg2">
+        <div class="card" style="grid-column:span 4;height:250px">
+          <h3><span class="dot"></span>Revised Value by Department (SAR M)</h3>
+          <div class="chartBox"><canvas id="chDept"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 4;height:250px">
+          <h3><span class="dot"></span>Revised Value by Scope (SAR M)</h3>
+          <div class="chartBox"><canvas id="chScope"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 4;height:250px">
+          <h3><span class="dot"></span>Contracts by Service Type</h3>
+          <div class="chartBox"><canvas id="chSvc"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 5;height:265px">
+          <h3><span class="dot"></span>Top 10 Vendors by Revised Value (SAR M)</h3>
+          <div class="chartBox"><canvas id="chVendors"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 7;height:265px">
+          <h3><span class="dot"></span>Program Scorecard</h3>
+          <div class="tblWrap"><table id="tblProg"></table></div>
+        </div>
+      </div>
+
+      <!-- ============ PAGE 3 : CONTRACT PERFORMANCE ============ -->
+      <div class="page" id="pg3">
+        <div class="card" style="grid-column:span 7;height:265px">
+          <h3><span class="dot"></span>Portfolio S-Curve — Cumulative Awarded Value (SAR M)</h3>
+          <div class="chartBox"><canvas id="chSCurve"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 5;height:265px">
+          <h3><span class="dot"></span>Planned vs Actual % — each contract (bubble = value)</h3>
+          <div class="chartBox"><canvas id="chScatter"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 6;height:280px">
+          <h3><span class="dot"></span>Top 12 Contracts — Earned vs Certified vs Paid (SAR M)</h3>
+          <div class="chartBox"><canvas id="chTopEcp"></canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 6;height:280px">
+          <h3><span class="dot"></span>Attention List — Largest Negative Progress Variance</h3>
+          <div class="tblWrap"><table id="tblRisk"></table></div>
+        </div>
+      </div>
+
+      <!-- ============ PAGE 4 : CONTRACT DETAILS ============ -->
+      <div class="page" id="pg4">
+        <div class="card" style="height:calc(100vh - 150px)">
+          <h3 style="justify-content:space-between">
+            <span style="display:flex;align-items:center;gap:8px"><span class="dot"></span>Contract Register <span id="detCount" style="color:var(--ink3);text-transform:none;letter-spacing:0"></span></span>
+            <input type="text" class="searchbox" id="detSearch" placeholder="Search contract, vendor, owner…">
+          </h3>
+          <div class="tblWrap"><table id="tblDetails"></table></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal"><div id="modalCard">
+  <button id="modalClose">✕</button>
+  <div id="modalBody"></div>
+</div></div>
+<script>
+/* ================= DATA ================= */
+let DATA = [{"po":"44","name":"Hydrogeological, Geological and Geotechnical Study for Rua Al-Haram","scope":"Main Plot","dept":"01-Project Development","program":"KSG","project":"-Concept Master Plan","vendor":"Dar Al-Handasah Company For Design & Technical Consulting (Shaer & Partners)","svcType":"Engineering","svcDesc":"Design & Supervision Consultant","status":"Active","signDate":"2023-03-01","startDate":"2023-03-01","endDate":"2023-06-14","revEndDate":"2025-07-31","ocv":970000,"vo":0,"rcv":970000,"deptOwner":"Ahmed Aboubakr","projOwner":"Ahmed Aboubakr","contrOwner":"Ashraf Samir","pcr":"Samer Ibrahim","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQW9mAW4lPaLN2FgwJpNLO6iu0qVEnRlppZJg&s","brief":"The scope of work covers full site supervision for geotechnical activities related to the geological study of the Main Plot, ensuring all field investigations are executed safely and accurately. It includes conducting detailed geotechnical studies such as geological mapping, soil classification, subsurface profiling, and laboratory testing to establish reliable ground parameters. The work also involves analyzing all relevant stakeholder data, including previous studies, site records, and technical reports, to validate findings and identify potential risks. Based on the collected data and analyses, the consultant will prepare a comprehensive recommendation report outlining ground conditions, constraints, and engineering considerations. Overall, the supervision ensures that all geotechnical inputs are robust, coordinated, and aligned with project requirements for informed design and construction decisions.for Main Plot","dataDate":"2026-07-31","planned":1,"actual":1,"ev":970000,"cert":970000,"paid":970000,"unbilled":0},{"po":"PO-100435","name":"The Program Management Consultancy (PgMC) Services for RUA\nProjects","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"AECOM Arabia Limited","svcType":"Management","svcDesc":"PMC","status":"Active","signDate":"2026-02-02","startDate":"2026-04-01","endDate":"2032-03-31","revEndDate":"2032-03-31","ocv":316370890,"vo":0,"rcv":316370890,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://aecom.com/wp-content/uploads/2021/06/social.png","brief":"The Consultant provides end‑to‑end Program Management Consultancy (PgMC) services to support the planning, design, procurement, construction, and delivery of RUA’s giga‑projects in Makkah. This includes establishing full program governance, management frameworks, standards, and procedures across design, technical coordination, project controls, risk, quality, HSSE, and stakeholder management. The Consultant oversees master planning, design management, change control, PMC oversight, and integration of all consultants and contractors while ensuring cultural, regulatory, and religious compliance. Comprehensive systems integration (DMS, ERP, PMIS, BIM, BI) and unified reporting, KPIs, and performance dashboards are developed to ensure effective monitoring and decision‑making. Overall, the Consultant ensures coordinated, efficient, and timely program execution aligned with RUA’s strategic vision and development objectives.","dataDate":"2026-07-31","planned":0.018583,"actual":0.018583,"ev":5879079.69,"cert":0,"paid":0,"unbilled":5879080},{"po":"43","name":"Hydrogeological, Geological and Geotechnical Study","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Pre-Concept Master Plan","vendor":"Mohammed OmarJazzar Consulting Engineering Company","svcType":"Contractor","svcDesc":"Contractor","status":"Complete","signDate":"2023-03-12","startDate":"2023-03-12","endDate":"2023-06-18","revEndDate":"2023-06-18","ocv":1523576.8,"vo":30000,"rcv":1553576.8,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_S6kPdHztZnXJvFGVvQFxS0QSi29vz8264McRJtiUKMqbR7cfj7dRT8M-yFt45gpzOcw&usqp=CAU.JPG","brief":"The scope of work covers conducting a comprehensive hydrogeological and geotechnical investigation for the project site, including drilling boreholes, soil and rock sampling, and performing field and laboratory testing. It includes assessing subsurface conditions, groundwater levels, soil properties, and rock characteristics through SPT, coring, packer tests, resistivity, and other geotechnical methods. The consultant must analyze findings to determine foundation recommendations, excavation requirements, backfilling specifications, and subsurface concrete guidelines. The work also involves installing piezometers, monitoring groundwater, and preparing complete factual and interpretive reports with all test results. Overall, the services ensure accurate characterization of site conditions to support safe and efficient structural design for Main Plot","dataDate":"2026-07-31","planned":0.985391,"actual":0.985391,"ev":1530881.271739,"cert":1530881,"paid":1530881.252174,"unbilled":0},{"po":"PO-100480","name":"Detailed Master Plan (DMP) for Rua Al Haram Al Makki Project in Makkah (Main Plot and the Four Additional Plots)","scope":"MP+4AP","dept":"01-Project Development","program":"KSG","project":"-Detailed Master Plan","vendor":"AS+P International Design Company, and Buro Happold Saudi Engineering Consultancy LLC (unincorporated consortium)","svcType":"Engineering","svcDesc":"Consortium - Consultant","status":"Active","signDate":"2026-03-30","startDate":"2026-03-30","endDate":"2027-12-29","revEndDate":"2027-12-29","ocv":229998668.9,"vo":0,"rcv":229998668.9,"deptOwner":"Fahad Hariri","projOwner":"Fahad Hariri","contrOwner":"Wajdi Haider","pcr":"Ahmed Elshahawy","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7un4SfV6RDBSD6LsClc8LW0Xc2TncT02ShA&s.jpg","brief":"The Consultant shall prepare and deliver a comprehensive Development Management Plan (DMP) covering baseline assessments, planning frameworks, development scenarios, and strategic recommendations aligned with Rua Al Haram’s objectives.\nThe scope includes conducting technical, regulatory, financial, and spatial analyses to support land‑use planning, phasing, infrastructure needs, and development feasibility.\nThe Consultant must coordinate with stakeholders, validate data, integrate multidisciplinary inputs, and ensure compliance with municipal, regulatory, and planning requirements.\nAll DMP outputs shall be delivered in structured formats, including reports, drawings, models, and decision‑support tools required for executive review and approval.\nThe Consultant is responsible for producing an actionable, integrated DMP that guides investment planning, project prioritization, and transition into subsequent design and development stages.","dataDate":"2026-07-31","planned":0.066889,"actual":0.066889,"ev":15384354.605,"cert":3549154,"paid":0,"unbilled":11835201},{"po":"194-01","name":"Pre-Concept Masterplan and Concept MasterPlan\n (Pre-CMP/CMP)","scope":"MP+4AP","dept":"01-Project Development","program":"KSG","project":"-Concept Master Plan","vendor":"A S and P International for Design Company, and\nBuro Happold and Partner for Engineering Consultancy Company;\nan unincorporated consortium","svcType":"Engineering","svcDesc":"Consortium - Consultant","status":"Active","signDate":"2024-05-15","startDate":"2024-05-15","endDate":"2025-04-15","revEndDate":"2026-03-31","ocv":80848000,"vo":18121637.85,"rcv":98969637.85,"deptOwner":"Ahmed Aboubakr","projOwner":"Ahmed Aboubakr","contrOwner":"Wajdi Haider","pcr":"Ahmed Elshahawy","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7un4SfV6RDBSD6LsClc8LW0Xc2TncT02ShA&s.jpg","brief":"The project scope outlined in this plan will be completed across 8 months starting on May 15th,2024, and 3 months for getting Authorities approvals. The scope mainly is consisting of 2 key phases: pre-concept master plan (pre-CMP) and concept master plan (CMP) development. With phase 1 requiring 3 months to compete and phase 2 requiring 6 months.\nAS+P & BH have entered a joint venture to deliver the project scope in its entirety.","dataDate":"2026-07-31","planned":0.994032,"actual":0.994032,"ev":98378975.418907,"cert":96265329,"paid":96265329.29,"unbilled":2113646},{"po":"PO-100526","name":"Early Works Demolition Package, for the Development of Ultra Luxury Development at Plot 0 - Ajyad","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Saudi Binladin Group Limited","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2026-06-01","startDate":null,"endDate":null,"revEndDate":"00:00:00","ocv":143241743,"vo":null,"rcv":143241743,"deptOwner":"Haitham Maddah","projOwner":"Haitham Maddah","contrOwner":"Haitham Maddah","pcr":"Tamer Mekawy","img":"https://iconape.com/wp-content/png_logo_vector/%D8%B4%D8%B9%D8%A7%D8%B1-%D9%85%D8%AC%D9%85%D9%88%D8%B9%D8%A9-%D8%A8%D9%86-%D9%84%D8%A7%D8%AF%D9%86-%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9.png","brief":"The scope covers full site preparation, enabling works, and coordination with existing utilities to ensure safe and uninterrupted operations. It includes execution of structural, architectural, and MEP works aligned with project specifications and regulatory requirements. The contractor is responsible for delivering all materials, resources, and temporary facilities necessary for seamless progress. The works integrate quality control, safety compliance, and stakeholder coordination throughout all phases. Final deliverables include testing, commissioning, and handover in accordance with approved standards and authority guidelines.","dataDate":"2026-07-31","planned":0.036,"actual":0.036,"ev":5156702.748,"cert":0,"paid":null,"unbilled":5156703},{"po":"119","name":"Detailed Hydrogeological, Geological and Geotechnical Study for RUA 4 Additional Plots","scope":"4 Plots","dept":"01-Project Development","program":"KSG","project":"-Concept Master Plan","vendor":"Dar Al-Handasah Company For Design & Technical Consulting (Shaer & Partners)","svcType":"Engineering","svcDesc":"Design & Supervision Consultant","status":"Active","signDate":"2023-11-23","startDate":"2023-11-23","endDate":"2024-05-23","revEndDate":"2026-03-01","ocv":1670000,"vo":230000,"rcv":1900000,"deptOwner":"Ahmed Aboubakr","projOwner":"Ahmed Aboubakr","contrOwner":"Ashraf Samir","pcr":"Samer Ibrahim","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQW9mAW4lPaLN2FgwJpNLO6iu0qVEnRlppZJg&s","brief":"The scope of work covers full site supervision for geotechnical activities related to the geological study of the 4 Additional Plots, ensuring all field investigations are executed safely and accurately. It includes conducting detailed geotechnical studies such as geological mapping, soil classification, subsurface profiling, and laboratory testing to establish reliable ground parameters. The work also involves analyzing all relevant stakeholder data, including previous studies, site records, and technical reports, to validate findings and identify potential risks. Based on the collected data and analyses, the consultant will prepare a comprehensive recommendation report outlining ground conditions, constraints, and engineering considerations. Overall, the supervision ensures that all geotechnical inputs are robust, coordinated, and aligned with project requirements for informed design and construction decisions.for 4 Additional Plots","dataDate":"2026-07-31","planned":0.948947,"actual":0.948947,"ev":1803000.0,"cert":1670000,"paid":1670000,"unbilled":133000},{"po":"200","name":"Lead Design Consultancy Services (Design + Guardianship)","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"PLP Architecture International LTD","svcType":"Engineering","svcDesc":"Lead Design Consultant","status":"Active","signDate":"2024-06-20","startDate":"2024-07-10","endDate":"2025-09-23","revEndDate":"2026-07-22","ocv":123579842,"vo":7142490.81,"rcv":130722332.81,"deptOwner":"Sameh Gomaa","projOwner":"Sameh Gomaa","contrOwner":"Sameh Gomaa","pcr":"Tamer Mekawy","img":"https://archinect.gumlet.io/uploads/ow/owrmewtbdjcvmqb1.png?fit=crop&auto=compress%2Cformat&enlarge=true&w=300.jpg","brief":"The project will merge opulence with spirituality, creating an architectural marvel that respects the rich heritage of its surroundings while introducing elegance and minimalism. The challenge is to repurpose the existing structure sustainably, balancing the old with the new to create a unique experience. The tower will offer views of Al-Haram and Al-Ka’aba, becoming a distinctive part of the skyline and providing unparalleled dwellings close to the focal point of the Islamic world. Additionally, it presents an opportunity for high-end retail, reviving the traditions of opulence and exchange in this global destination.","dataDate":"2026-07-31","planned":0.737081,"actual":0.737081,"ev":96352963.558571,"cert":75197340,"paid":75197340.08,"unbilled":21155624},{"po":"151","name":"Conduction of Hydrogeology and Geotechnical Study - 4 Additional Plots","scope":"4 Plots","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Pre-Concept Master Plan","vendor":"Mohammed OmarJazzar Consulting Engineering Company","svcType":"Contractor","svcDesc":"Contractor","status":"Complete","signDate":"2024-02-04","startDate":"2024-02-04","endDate":"2024-05-19","revEndDate":"2024-05-19","ocv":2832863,"vo":-388915.81,"rcv":2443947.19,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_S6kPdHztZnXJvFGVvQFxS0QSi29vz8264McRJtiUKMqbR7cfj7dRT8M-yFt45gpzOcw&usqp=CAU.JPG","brief":"The scope of work covers conducting a comprehensive hydrogeological and geotechnical investigation for the project site, including drilling boreholes, soil and rock sampling, and performing field and laboratory testing. It includes assessing subsurface conditions, groundwater levels, soil properties, and rock characteristics through SPT, coring, packer tests, resistivity, and other geotechnical methods. The consultant must analyze findings to determine foundation recommendations, excavation requirements, backfilling specifications, and subsurface concrete guidelines. The work also involves installing piezometers, monitoring groundwater, and preparing complete factual and interpretive reports with all test results. Overall, the services ensure accurate characterization of site conditions to support safe and efficient structural design for 4 Additional Plots","dataDate":"2026-07-31","planned":0.999739,"actual":0.999739,"ev":2443310,"cert":2443310,"paid":2443310,"unbilled":0},{"po":"231","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":812000,"vo":0,"rcv":812000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.964286,"actual":0.964286,"ev":783000,"cert":783000,"paid":783000,"unbilled":0},{"po":"PO-100330","name":"Earthworks for King Salman Gate (KSG) – Design and Build (“the Project”)","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Earthworks","vendor":"Al Enjaz Trading And Contracting Company","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2025-11-10","startDate":"2026-01-18","endDate":"2026-11-17","revEndDate":"2026-11-17","ocv":90236000,"vo":0,"rcv":90236000,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://erp.enjaz-co.com/oi_login_page/logo/1","brief":"The Contractor is responsible for the full design and execution of earthworks for the King Salman Gate project, including bulk excavation of mountainous terrain and demolition of existing on‑grade and underground structures. The scope includes relocation/protection of utilities and telecom assets, site isolation, access road construction, and safe debris handling. All activities must comply with Saudi Building Code, environmental requirements, and strict cultural/religious protocols due to proximity to the Grand Mosque. The Contractor must manage health, safety, quality, environmental controls, progress reporting, and secure all necessary permits and NOCs. The work concludes with full site management, as‑built documentation, and handover in accordance with contractual specifications and KPIs.","dataDate":"2026-07-31","planned":0.1046,"actual":0.1046,"ev":9438685.6,"cert":0,"paid":0,"unbilled":9438686},{"po":"224","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":4514000,"vo":0,"rcv":4514000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.689643,"actual":0.689643,"ev":3113049.1,"cert":3113049,"paid":3113049.101435,"unbilled":0},{"po":"PO-100195","name":"Project Management Consultancy Service Agreement","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Hanmi Global Saudi Arabia","svcType":"Management","svcDesc":"PMC","status":"Active","signDate":"2025-05-18","startDate":"2025-06-15","endDate":"2030-08-14","revEndDate":"2030-08-14","ocv":66686209,"vo":0,"rcv":66686209,"deptOwner":"Sameh Gomaa","projOwner":"Sameh Gomaa","contrOwner":"Sameh Gomaa","pcr":"Tamer Mekawy","img":"https://media.licdn.com/dms/image/v2/C560BAQGDFsY7J2Rhaw/company-logo_200_200/company-logo_200_200/0/1631384842139?e=2147483647&v=beta&t=4AK-3c5uo0cAtsSEwzQRWd-t7B19lWuXf5xyk3PG4A8","brief":"The scope of work covers comprehensive project management and oversight services to ensure effective planning, coordination, and execution of all project activities. It includes monitoring contractor performance, managing schedules, budgets, and quality standards, and ensuring compliance with contractual, regulatory, and safety requirements. The work also involves facilitating communication among stakeholders, preparing progress reports, and supporting decision‑making throughout the project lifecycle. Additionally, the scope ensures risks are identified and mitigated while maintaining smooth project delivery. Overall, the services aim to achieve timely, efficient, and high‑quality completion of the project objectives.","dataDate":"2026-07-31","planned":0.249814,"actual":0.249814,"ev":16659129.8404,"cert":11144114,"paid":11144114.66,"unbilled":5515015},{"po":"234","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":1141275,"vo":0,"rcv":1141275,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.944962,"actual":0.944962,"ev":1078461.38,"cert":1078461,"paid":1078461.381818,"unbilled":0},{"po":247,"name":"Construction supervision","scope":"Ajyad","dept":"04-Assets Delivery","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Saudi Diyar","svcType":"Supervision","svcDesc":"Construction Supervision Consultant","status":"Active","signDate":"2024-10-20","startDate":null,"endDate":null,"revEndDate":null,"ocv":41995620,"vo":6163142,"rcv":48158762,"deptOwner":"Haitham Maddah","projOwner":"Haitham Maddah","contrOwner":"Haitham Maddah","pcr":"Tamer Mekawy","img":"https://sdn.signalhire.co/storage/company/0681/7d92/c586/238a/0dab/25ac/d8b4/d416.webp","brief":"The project will merge opulence with spirituality, creating an architectural marvel that respects the rich heritage of its surroundings while introducing elegance and minimalism. The challenge is to repurpose the existing structure sustainably, balancing the old with the new to create a unique experience. The tower will offer views of Al-Haram and Al-Ka’aba, becoming a distinctive part of the skyline and providing unparalleled dwellings close to the focal point of the Islamic world. Additionally, it presents an opportunity for high-end retail, reviving the traditions of opulence and exchange in this global destination.","dataDate":"2026-07-31","planned":0.012,"actual":0.012,"ev":503947.44,"cert":0,"paid":0,"unbilled":503947},{"po":"PO-0000032","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":395000,"vo":0,"rcv":395000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.947038,"actual":0.947038,"ev":374080.08,"cert":374080,"paid":374080.081818,"unbilled":0},{"po":"PO-100251","name":"Construction  Alyuser Hotel Transformation to Site Offices","scope":"Main Plot","dept":"04-Assets Delivery","program":"KSG","project":"-Site Offices","vendor":"Focal Buildings Solutions","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2025-08-28","startDate":"2025-09-15","endDate":"2026-02-27","revEndDate":"2026-02-27","ocv":29850000,"vo":0,"rcv":29850000,"deptOwner":"Haitham Maddah","projOwner":"Haitham Maddah","contrOwner":"Haitham Maddah","pcr":"Tamer Mekawy","img":"https://cdn2.advanceinfotech.org/ksa.directory/1200x675/business/1628/focal-design-1675942522.webp","brief":"The project involves a full Design & Build transformation of the Alyuser Hotel into operational site offices, covering architectural refurbishment, interior redesign, and structural enhancements. The contractor is responsible for comprehensive MEP works—including HVAC, plumbing, electrical, ICT, security, and fire & life safety systems—along with testing and commissioning. The scope includes elevators rehabilitation, external works such as asphalt, signage, parking development, and façade improvements. All design stages (concept-to-detailed) with complete documentation, BOQ, renderings, and authority approvals are required. The contractor must deliver a fully operable facility within the stipulated time, followed by a one‑year defects liability and system maintenance period.","dataDate":"2026-07-31","planned":0.915,"actual":0.915,"ev":27312750,"cert":24140955,"paid":24140954.72,"unbilled":3171795},{"po":"PO-0000045","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":252000,"vo":0,"rcv":252000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.908968,"actual":0.908968,"ev":229060.04,"cert":229060,"paid":229060.042105,"unbilled":0},{"po":"PO-100140","name":"The Demolition of Existing Buildings & Design, Supply, Installation, Testing and Commissioning of Site Hoarding and Advertising Boards of RUA Main Plot in Makkah (Fencing and Hoarding)","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Demolition & Site Hoarding Installation","vendor":"Al Yamama Company For Trading and Contracting","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2024-12-30","startDate":"2025-03-03","endDate":"2026-05-02","revEndDate":"2026-05-02","ocv":24257770,"vo":0,"rcv":24257770,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://cafs.org.sa/wp-content/uploads/2023/07/logo-alyamama-14.png","brief":"The project scope covers the demolition of existing buildings across Zones A, B, and C, including the safe removal of structures, utilities, and debris in full compliance with regulatory requirements. It includes the design, supply, installation, testing, and commissioning of site hoarding and large‑scale advertising boards, complete with structural supports, lighting, and branding. The contractor is responsible for site preparation, grading, utility coordination, and temporary works, ensuring protection of adjacent assets and public safety. The scope further includes comprehensive HSE, QA/QC, reporting, surveying, and permit acquisition obligations throughout the project lifecycle. The contractor shall deliver full site restoration and handover, providing all documentation, as-built surveys, and certifications as required","dataDate":"2026-07-31","planned":0.7127,"actual":0.7127,"ev":17288512.679,"cert":12794761,"paid":12794761.65,"unbilled":4493751},{"po":"PO-100051","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":648000,"vo":0,"rcv":648000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.986758,"actual":0.986758,"ev":639419.48,"cert":639419,"paid":639419.477512,"unbilled":0},{"po":"PO-100395","name":"Geotechnical Investigation and Pump Testing DMP (Re-measurable)","scope":"MP+4AP","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Detailed Master Plan","vendor":"Arab Company for Laboratories and Soil (ACES)","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2026-01-01","startDate":"2026-01-27","endDate":"2026-09-23","revEndDate":"2026-11-04","ocv":15403169,"vo":1185000,"rcv":16588169,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://qa.muqawlat.com/uploads/images/15977489707404.jpeg","brief":"The contractor is responsible for executing all earthworks activities, including site clearing, excavation, grading, and soil preparation in accordance with project specifications.\nWork includes handling, transporting, and compacting materials to achieve required levels and geotechnical standards.\nThe contractor must ensure compliance with safety, environmental, and quality requirements throughout all phases of earthworks execution.","dataDate":"2026-07-31","planned":0.455,"actual":0.455,"ev":7008441.895,"cert":0,"paid":0,"unbilled":7008442},{"po":"PO-100093","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":416000,"vo":0,"rcv":416000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.472476,"actual":0.472476,"ev":196550.18,"cert":196550,"paid":196550.182297,"unbilled":0},{"po":"PO-100501","name":"AJYAD - Construction Stage Cost Management Consultancy (CMC) Services","scope":"Ajyad","dept":"03-Planning, Control, Cost & Contracts","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Turner and Townsend Arabia Limited Company","svcType":"Management","svcDesc":"CMC","status":"Active","signDate":"2026-05-21","startDate":null,"endDate":null,"revEndDate":"00:00:00","ocv":15118000,"vo":0,"rcv":15118000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Tamer Mekawy","img":"https://s3.eu-west-2.amazonaws.com/construo-storage/companies/760682ecde591be59e2bbe58b696e11a9e777ce0cf88624c138db58ab39caa1c.jpg","brief":"The Consultant provides full Construction Stage Cost Management Consultancy (CMC) services for the Ajyad Project, ensuring cost control, compliance, and alignment with Client policies. The role covers cost planning, monitoring, reporting, valuations, certifications, and commercial governance throughout construction. The Consultant must coordinate with all Client-appointed consultants and contractors, maintain required staffing, and meet all programme milestones. Responsibilities include timely advice, approvals, notices, and documentation to avoid delays and support Client obligations under construction contracts. All services must be delivered to the highest professional standards, ensuring accuracy, quality, and suitability for the Project’s objectives.","dataDate":"2026-07-31","planned":0.003166,"actual":0.003166,"ev":47864,"cert":0,"paid":null,"unbilled":47864},{"po":"PO-100494","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Technical Support","svcDesc":"Provision of Technical Support Services","status":"Active","signDate":"2025-05-04","startDate":"2026-05-20","endDate":"2028-05-03","revEndDate":"2028-05-03","ocv":15050978,"vo":0,"rcv":15050978,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://alliedstar.sa/wp-content/uploads/2023/12/sticky-1.jpg","brief":"The service provider delivers full technical support and consultancy services, deploying qualified resources to work onsite at RUA’s offices in Jeddah and Makkah. Responsibilities include managing design processes, BIM workflows, value engineering, document control, and design reviews across all project stages. The scope further covers site inspections, contractor coordination, procurement strategy support, and managing approvals and permits. The provider must ensure quality, HSE compliance, sustainability management, and structured project controls, reporting, and scheduling. Services also include project close‑out, risk management, PMIS implementation, and maintaining comprehensive project records and governance standards.","dataDate":"2026-07-31","planned":0.161349,"actual":0.161349,"ev":2428460.79,"cert":1461085,"paid":0,"unbilled":967376},{"po":"202","name":"Cost Management Consultant","scope":"Ajyad","dept":"03-Planning, Control, Cost & Contracts","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"DG Jones Saudi Arabia Company","svcType":"Management","svcDesc":"CMC","status":"Active","signDate":"2024-06-05","startDate":"2024-06-23","endDate":"2025-08-23","revEndDate":"2026-03-08","ocv":3431868,"vo":0,"rcv":3431868,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Maher Almadani","pcr":"Tamer Mekawy","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7NFpKdEr-oQPzWukcdUCa9QEGZ_9j_56ufw&s.jpg","brief":"the provision of  cost management consultancy services to oversee and guide the financial aspects of developing an Ultra-Luxury Development  Plot-0 (Ajyad). This service will ensure that budgetary controls, financial efficiency, and value optimization are maintained throughout the project's planning and construction phases, contributing to effective cost control and project success. This strategic approach provides value engineering and supports seamless coordination among stakeholders to achieve optimal results throughout the project's lifecycle.","dataDate":"2026-07-31","planned":0.676803,"actual":0.676803,"ev":2322697.1,"cert":1381868,"paid":1381868,"unbilled":940829},{"po":"PO-100276","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Technical Support","svcDesc":"Provision of Technical Support Services","status":"Active","signDate":"2025-05-04","startDate":"2025-05-04","endDate":"2028-05-03","revEndDate":"2028-05-03","ocv":13785600,"vo":0,"rcv":13785600,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.465628,"actual":0.465628,"ev":6418958.189434,"cert":5333158,"paid":44238.1,"unbilled":1085800},{"po":"PO-245-PO-100237-PO-100354","name":"Provision of Cost Management Consultancy Services for the CMP and DMP of Main & Additional Plots","scope":"MP+4AP","dept":"03-Planning, Control, Cost & Contracts","program":"KSG","project":"-Concept Master Plan","vendor":"Turner and Townsend Arabia Limited Company","svcType":"Management","svcDesc":"CMC","status":"Active","signDate":"2024-10-20","startDate":"2024-11-06","endDate":"2026-12-05","revEndDate":"2027-08-05","ocv":4723750,"vo":1344000,"rcv":6067750,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Maher Almadani","pcr":"Omar Ahmed","img":"https://s3.eu-west-2.amazonaws.com/construo-storage/companies/760682ecde591be59e2bbe58b696e11a9e777ce0cf88624c138db58ab39caa1c.jpg","brief":"The scope of work covers the provision of comprehensive cost management consultancy services for the CMP and DMP of the Client’s main and additional plots, as defined in the agreement: “Provision of Cost Management Consultancy Services for the CMP and DMP of Main and Additional Plots.” The Consultant is responsible for delivering all services outlined in Schedule 2, including cost planning, estimating, budgeting, monitoring, reporting, and supporting the Client throughout project development. The work also requires full coordination with other consultants, adherence to milestone deadlines, and compliance with all contractual, legal, and professional standards.","dataDate":"2026-07-31","planned":0.43039,"actual":0.43039,"ev":2611500,"cert":2611500,"paid":2611500,"unbilled":0},{"po":"PO-100218","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Technical Support","svcDesc":"Provision of Technical Support Services","status":"Active","signDate":"2025-05-04","startDate":"2025-05-04","endDate":"2028-05-03","revEndDate":"2028-05-03","ocv":13334400,"vo":0,"rcv":13334400,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.864103,"actual":0.864103,"ev":11522293.86,"cert":11448294,"paid":6540673.028421,"unbilled":74000},{"po":"PO-100112","name":"Cultural & Heritage Consultant","scope":"MP+4AP","dept":"02-Design","program":"KSG","project":"-Concept Master Plan","vendor":"Dr. Adnan Abbas Adas","svcType":"Study and Research","svcDesc":"Consultant - Others","status":"Active","signDate":"2024-12-22","startDate":"2024-12-22","endDate":"2025-12-21","revEndDate":"2026-12-21","ocv":280000,"vo":0,"rcv":280000,"deptOwner":"Fahad Hariri","projOwner":"Fahad Hariri","contrOwner":"Fahad Hariri","pcr":"Ahmed Elshahawy","img":"https://media.licdn.com/dms/image/v2/D4D16AQFcVrUjQv_c5g/profile-displaybackgroundimage-shrink_200_800/profile-displaybackgroundimage-shrink_200_800/0/1680167343226?e=2147483647&v=beta&t=kRQq8k7-r648JdRVpVGwlz55LtV9tBoPdFHXP43GtYk","brief":"The scope of work involves the continued engagement of an Archaeological and Heritage Specialist Consultant to support Rua Al Haram Al Makki Company throughout the DMP stage. The consultant’s role includes providing expert archaeological and heritage advisory services, reviewing project impacts, and ensuring compliance with cultural heritage requirements. The work also covers ongoing coordination with the development team, participation in project reviews, and delivering specialist recommendations as needed. This amendment maintains all original obligations while extending the consultant’s involvement to ensure uninterrupted heritage oversight.","dataDate":"2026-07-31","planned":0.398393,"actual":0.398393,"ev":111550.0,"cert":104550,"paid":104550,"unbilled":7000},{"po":"PO-100140","name":"The Demolition of Existing Buildings & Design, Supply, Installation, Testing and Commissioning of Site Hoarding and Advertising Boards of RUA Main Plot in Makkah (Demolition)","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Demolition & Site Hoarding Installation","vendor":"Al Yamama Company For Trading and Contracting","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2024-12-30","startDate":"2025-03-03","endDate":"2026-05-02","revEndDate":"2026-05-02","ocv":10727500,"vo":0,"rcv":10727500,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://cafs.org.sa/wp-content/uploads/2023/07/logo-alyamama-14.png","brief":"The project scope covers the demolition of existing buildings across Zones A, B, and C, including the safe removal of structures, utilities, and debris in full compliance with regulatory requirements. It includes the design, supply, installation, testing, and commissioning of site hoarding and large‑scale advertising boards, complete with structural supports, lighting, and branding. The contractor is responsible for site preparation, grading, utility coordination, and temporary works, ensuring protection of adjacent assets and public safety. The scope further includes comprehensive HSE, QA/QC, reporting, surveying, and permit acquisition obligations throughout the project lifecycle. The contractor shall deliver full site restoration and handover, providing all documentation, as-built surveys, and certifications as required","dataDate":"2026-07-31","planned":0.815282,"actual":0.815282,"ev":8745939.96,"cert":6342066,"paid":6342065.28,"unbilled":2403875},{"po":"PO-100301","name":"Provision of Cost Management Consultancy","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Mace Arabia for Engineering Consultancy LLC","svcType":"Management","svcDesc":"CMC","status":"Active","signDate":"2025-08-03","startDate":"2025-08-03","endDate":"2028-08-02","revEndDate":"2028-08-02","ocv":7802685,"vo":0,"rcv":7802685,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Maher Almadani","pcr":"Omar Ahmed","img":"https://southernconstructionframework.gov.uk/wp-content/uploads/2020/08/mace.png","brief":"The role provides end‑to‑end cost management services across all project stages, ensuring budgets are defined, monitored, and controlled in alignment with RUA requirements. Responsibilities include preparing cost plans, feasibility studies, estimates, Bills of Quantities, and comprehensive commercial reports. The scope also covers value engineering, risk and change management, tender evaluation, and financial oversight throughout design and construction. Continuous coordination with consultants, contractors, and stakeholders is required to maintain budget compliance and resolve cost‑related issues. Overall, the work ensures effective cost governance, accurate reporting, and successful delivery of project financial objectives.","dataDate":"2026-07-31","planned":0.34677,"actual":0.34677,"ev":2705737.87,"cert":2220668,"paid":2220667.87,"unbilled":485070},{"po":"188","name":"Provision of Travel Management Services (for RUA's Consultant)","scope":"MP+4AP","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Fursan Travel and Tourism Company","svcType":"Administration & Hospitality","svcDesc":"Travel Agent","status":"Active","signDate":"2024-04-01","startDate":"2024-04-01","endDate":"2025-03-31","revEndDate":"2026-03-31","ocv":1000000,"vo":0,"rcv":1000000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://cdn.prod.website-files.com/64934b1b5b168f3686f8521b/64934b1b5b168f3686f85772_our%20clients%20logos-103.png","brief":"The scope covers comprehensive travel management services including issuing domestic and international flight tickets, processing visas, and securing hotel bookings at the best available rates. It requires the provider to deliver all reservations within two working hours and manage refunds, changes, and cancellations efficiently. The service includes 24/7 support, business travel coordination, BI reporting, corporate fare negotiation, and full administrative handling at no extra cost. Additional responsibilities include airport reception services, arranging meetings and events, and ensuring all bookings and documentation meet SLA requirements. Overall, the provider supports the client with end‑to‑end, timely, cost‑effective, and compliant travel solutions.","dataDate":"2026-07-31","planned":0.755391,"actual":0.755391,"ev":755391.18,"cert":719197,"paid":719196.7,"unbilled":36194},{"po":"PO-100310","name":"Drone, Time Lapse , Live Broadcasting and Regular Photography Services","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"RUA","project":"-RUA","vendor":"Falcon Visualization Ltd.","svcType":"Surveying","svcDesc":"Service Provider","status":"Active","signDate":"2025-07-20","startDate":"2025-07-20","endDate":"2028-07-20","revEndDate":"2028-07-20","ocv":6106217.09,"vo":0,"rcv":6106217.09,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://media.licdn.com/dms/image/v2/C560BAQEm4Mvge3qsZA/company-logo_200_200/company-logo_200_200/0/1630565813061/falconviz_logo?e=2147483647&v=beta&t=g_I7Fo6LsiaVfXLhHuGAi2KowL2fkcX-mjFMhTiMNps","brief":"The service provider delivers comprehensive drone, time‑lapse, live‑broadcasting, and photography services to document and monitor RUA’s mega development projects. Responsibilities include aerial surveys, mapping, progress tracking, inspections, and environmental monitoring to support project oversight. The scope also covers ground photography, videography, marketing content creation, and continuous time‑lapse recording across strategic locations. Additionally, the provider must process, analyze, and manage large volumes of visual data through integrated platforms for reporting and decision‑making. All services must comply with strict safety, regulatory, and quality standards while ensuring secure data delivery and ongoing operational availability.","dataDate":"2026-07-31","planned":0.5537,"actual":0.5537,"ev":3381012.402733,"cert":2253931,"paid":2253931.31,"unbilled":1127081},{"po":"PO-100167","name":"Provision of Security Services ( Security Services for Zone A, B and C.)","scope":"Main Plot","dept":"06-HSSE","program":"RUA","project":"-RUA","vendor":"Arabian Security & Safety Services Co. Ltd (amnco)","svcType":"Safety & Security","svcDesc":"Manpower Supply","status":"Complete","signDate":"2025-01-01","startDate":"2025-01-01","endDate":"2027-12-31","revEndDate":"2027-12-31","ocv":4381249.2,"vo":0,"rcv":4381249.2,"deptOwner":"Farouk Asiri","projOwner":"Farouk Asiri","contrOwner":"Farouk Asiri","pcr":"HSSE","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNUb5xc3xvwWtihPhiGc3kzvijD5rNZhWVJQ&s.png","brief":"The security service provider is responsible for safeguarding RUA’s main plot through 24/7 manned guarding, patrolling, and monitoring of all entry and exit points. Duties include controlling access for personnel, vehicles, and materials, preventing unauthorized entry, and protecting properties against theft, fire, and safety risks. The agency must deploy trained, physically fit guards and supervisors equipped with proper uniforms, communication devices, and patrol vehicles. They are required to maintain detailed logs, daily reports, incident records, and coordinate with police, civil defense, and local authorities when needed. The scope also covers emergency response, visitor management, crisis handling, and ensuring the site is securely handed over upon contract completion.","dataDate":"2026-07-31","planned":0.997359,"actual":0.997359,"ev":4369677,"cert":4004917,"paid":4004917,"unbilled":364760},{"po":"PO-100542","name":"Consumption PurchaseOrder-Extension of PO-100167\nZoneA,B,CandAlyusurSiteOffices. relatedtothesigned\nFrameworkAgreementRUA-2024-053","scope":"Main Plot","dept":"06-HSSE","program":"RUA","project":"-RUA","vendor":"Arabian Security & Safety Services Co. Ltd (amnco)","svcType":"Safety & Security","svcDesc":"Manpower Supply","status":"Active","signDate":"2025-01-01","startDate":"2025-01-01","endDate":"2027-12-31","revEndDate":"2027-12-31","ocv":2549820,"vo":0,"rcv":2549820,"deptOwner":"Farouk Asiri","projOwner":"Farouk Asiri","contrOwner":"Farouk Asiri","pcr":"HSSE","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNUb5xc3xvwWtihPhiGc3kzvijD5rNZhWVJQ&s.png","brief":"The security service provider is responsible for safeguarding RUA’s main plot through 24/7 manned guarding, patrolling, and monitoring of all entry and exit points. Duties include controlling access for personnel, vehicles, and materials, preventing unauthorized entry, and protecting properties against theft, fire, and safety risks. The agency must deploy trained, physically fit guards and supervisors equipped with proper uniforms, communication devices, and patrol vehicles. They are required to maintain detailed logs, daily reports, incident records, and coordinate with police, civil defense, and local authorities when needed. The scope also covers emergency response, visitor management, crisis handling, and ensuring the site is securely handed over upon contract completion.","dataDate":"2026-07-31","planned":0.277518,"actual":0.277518,"ev":707620,"cert":0,"paid":0,"unbilled":707620},{"po":"PO-100335","name":"Construction Supervision Services for Earthworks of King Salman\nGate (KSG) (“the Project”)","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Earthworks","vendor":"Saudi Consolidated Engineering Co. (Khatib &Alami)","svcType":"Supervision","svcDesc":"Construction Supervision Consultant","status":"Active","signDate":"2025-11-10","startDate":"2026-01-18","endDate":"2027-01-17","revEndDate":"2027-01-17","ocv":5986000,"vo":0,"rcv":5986000,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJG2QEGBnYaLTcyCC8BJcPllm1R8D-wNVnXw&s.jpg","brief":"The role involves overseeing project execution to ensure all activities comply with approved designs, specifications, safety standards, and regulatory requirements. It includes coordinating with stakeholders, managing schedules, monitoring progress, and resolving technical or operational issues. Responsibilities cover supervising site operations, validating contractor performance, and ensuring quality control across all project phases. The work requires preparing reports, maintaining documentation, and supporting decision‑making through accurate project insights. Overall, the position ensures successful project delivery within scope, time, and quality expectations.","dataDate":"2026-07-31","planned":0.44,"actual":0.44,"ev":2633840,"cert":1966498,"paid":1966498.19,"unbilled":667342},{"po":"PO-100090","name":"Topographical Survey","scope":"MP+4AP","dept":"01-Project Development","program":"KSG","project":"-Concept Master Plan","vendor":"Al-Qotr Surveying Company","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2023-10-15","startDate":"2023-05-21","endDate":"2024-05-20","revEndDate":"2024-12-31","ocv":641043.5,"vo":0,"rcv":641043.5,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUP7e0DoCUIbLJS7SbsXKzw3w-MT898DgB-Q&s.png","brief":"Cadastral surveying involves mapping and recording land ownership boundaries, egal, development, and planning purposes and identifies the land parcels needed for projects like construction or urban development to establish accurate property boundaries using legal descriptions, maps, and current land data, ensuring proper land acquisition and proper mapping.","dataDate":"2026-07-31","planned":0.95,"actual":0.95,"ev":608991.325,"cert":472348,"paid":472347.84,"unbilled":136643},{"po":"PO-100339","name":"Security Building Pre-Concept Design, Structural Analysis and Demolition Strategy","scope":"Main Plot","dept":"02-Design","program":"KSG","project":"-Security Building","vendor":"Dar Al-Handasah Company For Design & Technical Consulting (Shaer & Partners)","svcType":"Engineering","svcDesc":"Design Consultant","status":"Active","signDate":"2025-10-27","startDate":"2025-10-27","endDate":"2026-03-15","revEndDate":"2026-03-15","ocv":4440000,"vo":350000,"rcv":4790000,"deptOwner":"Fahad Hariri","projOwner":"Fahad Hariri","contrOwner":"Ashraf Samir","pcr":"Samer Ibrahim","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQW9mAW4lPaLN2FgwJpNLO6iu0qVEnRlppZJg&s","brief":"The scope of work covers delivering the Security Building Pre‑Concept Design, Structural Analysis, and Demolition Strategy, as stated in the contract title: “Security Building Pre‑Concept Design Structural Analysis and Demolition Strategy.” The Consultant is responsible for preparing all required technical studies, design analyses, and strategic recommendations in accordance with Schedule 2, while coordinating with the Client and other project stakeholders. The services must be performed to professional standards, meeting all milestones, legal requirements, and project objectives set by Rua Al Haram Al Makki Company.","dataDate":"2026-07-31","planned":0.90989,"actual":0.90989,"ev":4358374.0,"cert":3350000,"paid":3350000,"unbilled":1008374},{"po":"PO-100152","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":237000,"vo":0,"rcv":237000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0,"actual":0,"ev":0,"cert":0,"paid":0,"unbilled":0},{"po":"PO-100144","name":"Geotechnical Investigation Works in Ajyad (\"the Project\")","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Advanced Construction Technology Services Company (ACTS)","svcType":"Contractor","svcDesc":"Contractor","status":"Active","signDate":"2025-02-13","startDate":"2025-02-25","endDate":"2025-10-20","revEndDate":"2025-10-20","ocv":425230,"vo":0,"rcv":425230,"deptOwner":"Sameh Gomaa","projOwner":"Haitham Maddah","contrOwner":"Haitham Maddah","pcr":"Tamer Mekawy","img":"https://media.glassdoor.com/sqll/655599/advanced-construction-technology-services-squarelogo-1531899947539.png","brief":"The project involves supervising the complete geotechnical investigation works for the Ajyad site, including drilling deep boreholes, sampling, coring, and conducting in‑situ tests such as SPT, packer tests, falling‑head tests, and high‑pressure dilatometer tests. It covers oversight of groundwater monitoring through observation wells, installation of dataloggers, and continuous water‑level recording. The scope also includes supervising geophysical investigations such as borehole televiewer logging (OTV/ATV) and P‑S suspension logging. Responsibilities extend to ensuring proper sample preservation, laboratory testing (UCS, triaxial, direct shear, point load), and compliance with international standards and Zamzam aquifer protection measures. The contractor must deliver complete factual reports, logs, CAD sections, AGS data, and reinstate the site to its original condition upon completion.","dataDate":"2026-07-31","planned":1,"actual":1,"ev":425230,"cert":307324,"paid":307324.4,"unbilled":117906},{"po":"PO-100303","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Alliance Stars Contracting Company-Compass","svcType":"Technical Support","svcDesc":"Provision of Technical Support Services","status":"Active","signDate":"2025-04-27","startDate":"2025-04-27","endDate":"2028-04-26","revEndDate":"2028-04-26","ocv":4035528,"vo":0,"rcv":4035528,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://alliedstar.sa/wp-content/uploads/2023/12/sticky-1.jpg","brief":"The service provider delivers full technical support and consultancy services, deploying qualified resources to work onsite at RUA’s offices in Jeddah and Makkah. Responsibilities include managing design processes, BIM workflows, value engineering, document control, and design reviews across all project stages. The scope further covers site inspections, contractor coordination, procurement strategy support, and managing approvals and permits. The provider must ensure quality, HSE compliance, sustainability management, and structured project controls, reporting, and scheduling. Services also include project close‑out, risk management, PMIS implementation, and maintaining comprehensive project records and governance standards.","dataDate":"2026-07-31","planned":0.430719,"actual":0.430719,"ev":1738179.036,"cert":802295,"paid":0,"unbilled":935884},{"po":"PO-100396","name":"Geotechnical Investigation - Detailed Mater Plan - Supervision\nConsultancy","scope":"MP+4AP","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Detailed Master Plan","vendor":"Saudi Consolidated Engineering Co. (Khatib &Alami)","svcType":"Supervision","svcDesc":"Supervision Consultant","status":"Active","signDate":"2026-01-04","startDate":"2026-01-27","endDate":"2027-01-26","revEndDate":"2027-01-26","ocv":3642000,"vo":null,"rcv":3642000,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJG2QEGBnYaLTcyCC8BJcPllm1R8D-wNVnXw&s.jpg","brief":"The Consultant shall supervise and monitor all earthworks activities for the King Salman Gate Project, ensuring compliance with the Agreement, KSA laws, and all applicable standards.\nThey must coordinate with the Client’s contractors and consultants, maintain proper staffing, and provide all required reports, approvals, and technical oversight to avoid delays.\nThe Consultant is responsible for ensuring quality, safety, and timely performance of services, rectifying any deficiencies at no additional cost to the Client","dataDate":"2026-07-31","planned":0.3838,"actual":0.3838,"ev":1397799.6,"cert":1138456,"paid":339392.98,"unbilled":259344},{"po":"PO-100065","name":"Construction Supervision Service for  Demolition of the Existing Buildings, and Construction of Site Hoarding and Advertising Boards","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Demolition & Site Hoarding Installation","vendor":"Dar International For Engineering Consultancy Company","svcType":"Supervision","svcDesc":"Construction Supervision Consultant","status":"Active","signDate":"2024-12-30","startDate":"2025-03-03","endDate":"2026-06-02","revEndDate":"2026-07-28","ocv":3506550,"vo":523644.92,"rcv":4030194.92,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://i0.wp.com/allengineeringfirms.com/wp-content/uploads/2021/04/image-155.png?resize=164%2C96&ssl=1.jpg","brief":"The Consultant is responsible for full construction supervision of demolition works, site hoarding, and advertising board installations for the RUA Main Plot in Makkah. They oversee contractor performance, conduct inspections, validate progress, and ensure compliance with technical specifications, safety standards, and regulatory requirements. Their role includes planning, scheduling, cost control, documentation review, programme management, and risk mitigation. The Consultant coordinates meetings, responds to RFIs, manages quality assurance processes, and supports permitting and stakeholder communication. They also handle project close‑out, handover, and preparation of all final reports, certifications, and as‑built documentation.","dataDate":"2026-07-31","planned":1.0,"actual":1.0,"ev":3506550.0,"cert":3369486,"paid":3369485.55,"unbilled":137064},{"po":"PO-100181","name":"Provision Architect of Record (AOR) and Permtting Services","scope":"MP+4AP","dept":"05-Infrastructure Delivery","program":"RUA","project":"-RUA","vendor":"Solaiman Abdullah Elkhereiji Engineering Consultant Company (SAK)","svcType":"Coordination","svcDesc":"Consultant - Coordination","status":"Active","signDate":"2025-03-02","startDate":"2025-03-02","endDate":"2028-03-01","revEndDate":"2028-03-01","ocv":210000,"vo":0,"rcv":210000,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://teaser-cdn.fra1.cdn.digitaloceanspaces.com/avatars/companies/logos/1603179000_logo.png","brief":"The scope covers complete Architect of Record (AOR) responsibilities, ensuring all project permits, NOCs, approvals, and regulatory requirements are identified, managed, and secured on time across all authorities. It includes leading permitting strategies, coordinating with government and utility agencies, and maintaining a live permitting and GIS tracking register for full compliance. The role oversees technical reviews, site inspections, design verification, and documentation evaluations to ensure adherence to local codes and standards. It also manages submissions, responses to authority comments, utility coordination, and construction‑phase permitting including amendments, inspections, and occupancy certification. Overall, it ensures seamless regulatory governance, risk mitigation, and timely approval cycles to enable uninterrupted project delivery.","dataDate":"2026-07-31","planned":1,"actual":1,"ev":210000,"cert":140000,"paid":140000,"unbilled":70000},{"po":"PO-100394","name":"Provision Architect of Record (AOR) and Permtting Services","scope":"Main Plot","dept":"01-Project Development","program":"KSG","project":"-School Conditions Assessment","vendor":"Omraniyoun and Partner Consulting Engineers Company","svcType":"Coordination","svcDesc":"Consultant - Coordination","status":"Active","signDate":"2025-02-25","startDate":"2025-03-02","endDate":"2028-03-01","revEndDate":"2028-03-01","ocv":400000,"vo":18000,"rcv":418000,"deptOwner":"Sameh Gomaa","projOwner":"Sameh Gomaa","contrOwner":"Sameh Gomaa","pcr":"Tamer Mekawy","img":"https://luxurylifestyleawards.com/wp-content/uploads/2023/04/Screenshot-2023-04-11-101830.png","brief":"The role oversees all Architect of Record responsibilities, ensuring full compliance with local codes and regulatory requirements while managing permits, NOCs, approvals, and authorities’ coordination throughout the project lifecycle. It includes leading permitting strategies, liaising with government and utility agencies, and securing all mandatory approvals for design, construction, and occupancy. The work covers technical reviews, interpretation of design documents, site inspections, and verification of compliance with standards. Responsibilities extend to managing design submissions, resolving authority comments, and maintaining a live permitting and GIS tracking register. Overall, the role ensures seamless regulatory governance, timely permitting, and full legal compliance for successful project delivery.","dataDate":"2026-07-31","planned":1.0,"actual":1.0,"ev":418000.0,"cert":418000,"paid":418000,"unbilled":0},{"po":"PO-100198","name":"Provision of Design Peer Review","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"WSP Middle East For Engineering Consulting Company","svcType":"Supervision","svcDesc":"Design & Supervision Consultant","status":"Active","signDate":"2025-04-27","startDate":"2025-04-27","endDate":"2028-04-26","revEndDate":"2028-04-26","ocv":2790818,"vo":0,"rcv":2790818,"deptOwner":"Sameh Gomaa","projOwner":"Sameh Gomaa","contrOwner":"Sameh Gomaa","pcr":"Tamer Mekawy","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRPr0BOBofLhOMKkJ6sJnLNHWCm2bEcOFxJsA&s.jpg","brief":"The scope of work covers a comprehensive peer review of the Structural, Façade, MEP, Electrical, ICT, and Lighting designs for the Ajyad Development, including review of schematic and detailed design stages as stated in the PO description: “Design Review – Structural Facade and MEP – Schematic and Detailed Design.” The consultant is responsible for evaluating all design documents, calculations, BIM coordination, and compliance with local and international standards while providing recommendations, value engineering, and tracking of all comments. The work also includes issuing formal review reports, participating in weekly progress meetings, and ensuring all design improvements are incorporated into final construction documents","dataDate":"2026-07-31","planned":0.9502,"actual":0.9502,"ev":2651835.2636,"cert":2093792,"paid":2093791.747,"unbilled":558044},{"po":"PO-100115","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Jasara Program Management Company","svcType":"Management","svcDesc":"Manpower Supply","status":"Complete","signDate":"2024-04-03","startDate":"2024-04-03","endDate":"2025-04-02","revEndDate":"2025-04-02","ocv":1088000,"vo":0,"rcv":1088000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://media.glassdoor.com/sqll/6945461/jasara-program-management-squarelogo-1654174859520.png","brief":"The scope of work provides full technical support services through on‑site resource deployment in Jeddah and Makkah, covering project management, design management, construction oversight, and specialist engineering functions. It includes leading design consultants, conducting design reviews, managing BIM processes, and ensuring compliance with codes, permits, and stakeholder requirements. The services support project planning, scheduling, budgeting, cost control, procurement, and risk management to achieve successful project delivery. Responsibilities further include quality assurance, HSE management, interface coordination, and oversight of contractors’ work on and off site. Overall, the scope ensures seamless execution of RUA’s development programs through comprehensive technical, managerial, and operational support.","dataDate":"2026-07-31","planned":0.86165,"actual":0.86165,"ev":937475.61,"cert":937476,"paid":937475.598383,"unbilled":0},{"po":null,"name":"Old Charges - Design Related Services","scope":"MP+4AP","dept":"03-Planning, Control, Cost & Contracts","program":"Old","project":"Competition / Old Studies","vendor":"Old Charges - Design Related Services","svcType":"Engineering","svcDesc":null,"status":"Complete","signDate":null,"startDate":null,"endDate":null,"revEndDate":null,"ocv":2768922.5,"vo":0,"rcv":2768922.5,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Maher Almadani","pcr":"old","img":"https://i.ytimg.com/vi/dRDot5MIVmo/hqdefault.jpg","brief":"The scope of work covers delivering design‑related services that support project development through technical analysis, documentation, and coordination. It includes preparing design concepts, reviewing drawings, and ensuring compliance with project requirements and industry standards. Responsibilities extend to supporting consultants, validating design inputs, and facilitating timely design updates. The work also involves resolving design issues, providing recommendations, and supporting decision-making throughout the project lifecycle. Overall, the services ensure accurate, efficient, and compliant design outputs aligned with project objectives.","dataDate":"2026-07-31","planned":1,"actual":1,"ev":2768922.5,"cert":2768922,"paid":2768922.5,"unbilled":0},{"po":"PO-100168","name":"Provision of Design Peer Review ( Structural Design Peer Review for Fence & Demolishing Areas)","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Demolition & Site Hoarding Installation","vendor":"DAR ALRIYADH ENGINEERING CONSULTING","svcType":"Supervision","svcDesc":"Design & Supervision Consultant","status":"Active","signDate":"2025-03-30","startDate":"2025-04-27","endDate":"2025-12-31","revEndDate":"2025-12-31","ocv":131418.5,"vo":0,"rcv":131418.5,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Sherif Elbialy","pcr":"Mohamed Gamal Baly","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_ttOghkt57toQvBKeFP6ghtlyRsWslyrqZA&s.jpg","brief":"Design Peer review services associated to Structure, The service covers performing a comprehensive structural design peer review for fence and demolition‑related areas under Framework Agreement RUA‑2025‑014. The consultant evaluates structural engineering deliverables to ensure alignment with project requirements and industry standards. The work includes technical assessment by structural specialists, senior structural reviewers, and coordination support. It ensures compliance, constructability, safety, and completeness of the structural design before execution. All activities are delivered within the project schedule, reporting, and quality expectations set by Rua Al Haram Al Makki Company.","dataDate":"2026-07-31","planned":1,"actual":1,"ev":131418.5,"cert":0,"paid":0,"unbilled":131418},{"po":null,"name":"Design Competition","scope":"MP+4AP","dept":"03-Planning, Control, Cost & Contracts","program":"Old","project":"Competition / Old Studies","vendor":"Design Competition","svcType":"Engineering","svcDesc":null,"status":"Complete","signDate":null,"startDate":null,"endDate":null,"revEndDate":null,"ocv":2625000,"vo":0,"rcv":2625000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Maher Almadani","pcr":"old","img":"https://i.ytimg.com/vi/dRDot5MIVmo/hqdefault.jpg","brief":"The competition pertains to the awarding of the Pre-Concept Master Plan (Pre-CMP) and Concept Master Plan (CMP) for the Rua Al Haram Al Makki Project in Makkah, encompassing both the main plot and the 4 additional plots.","dataDate":"2026-07-31","planned":1,"actual":1,"ev":2625000,"cert":2625000,"paid":2625000,"unbilled":0},{"po":"PO-100219","name":"Construction Supervision Services for Alyuser Hotel Transformation to Site Offices","scope":"Main Plot","dept":"04-Assets Delivery","program":"KSG","project":"-Site Offices","vendor":"Omraniyoun and Partner Consulting Engineers Company","svcType":"Supervision","svcDesc":"Consultancy Services Agreement","status":"Active","signDate":"2025-07-14","startDate":"2025-09-15","endDate":"2027-03-14","revEndDate":"2027-04-30","ocv":2328507.5,"vo":255732,"rcv":2584239.5,"deptOwner":"Haitham Maddah","projOwner":"Haitham Maddah","contrOwner":"Haitham Maddah","pcr":"Tamer Mekawy","img":"https://luxurylifestyleawards.com/wp-content/uploads/2023/04/Screenshot-2023-04-11-101830.png","brief":"The role involves supervising the full Design & Build transformation of the Alyuser Hotel into operational site offices, including architectural refurbishment, structural enhancements, and complete interior redesign. It includes supervising the execution of all Mechanical, Electrical, Plumbing, ICT, security, and fire & life‑safety systems, along with testing, commissioning, and systems integration. The scope also covers supervising external works such as asphalt paving, walkways, parking development, façade improvements, and signage installation. Responsibilities extend to supervising the preparation of all design documentation across concept, schematic, and detailed stages, in addition to securing permits and implementing due‑diligence recommendations. The facility is delivered fully operational, followed by supervising the one‑year defects‑liability and maintenance period.","dataDate":"2026-07-31","planned":0.969978,"actual":0.969978,"ev":2506654.6413,"cert":2430678,"paid":2430678.45,"unbilled":75976},{"po":"PO-100368","name":"Ajyad Facility Management","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Olive Arabia Company Limited","svcType":"Operation & Maintenance","svcDesc":"Service Provider","status":"Active","signDate":"2025-12-29","startDate":"2026-01-14","endDate":"2026-07-13","revEndDate":"2026-07-13","ocv":2483000,"vo":0,"rcv":2483000,"deptOwner":"Sameh Gomaa","projOwner":"Farouk Asiri","contrOwner":"Farouk Asiri","pcr":"Tamer Mekawy","img":"https://cdn.theorg.com/0ac00d1e-af29-4b77-88cf-ee8ee0798b02_medium.jpg","brief":"The Facilities Management services aim to ensure safe, efficient, and continuous operation of all facilities while preserving asset value and maintaining full regulatory compliance. The scope covers both hard and soft FM services, including MEP operations, fire and life‑safety systems, structural and office maintenance, and comprehensive cleaning and security services. It also includes planned preventive maintenance, asset history tracking, and lifecycle planning to support long‑term performance. Management responsibilities extend to reporting, administration, and adherence to health, safety, and environmental standards. Additionally, the FM contractor must provide effective emergency response and business continuity measures to ensure uninterrupted operations.","dataDate":"2026-07-31","planned":0.809,"actual":0.809,"ev":2008747.0,"cert":470832,"paid":470832.09,"unbilled":1537915},{"po":"PO-100241","name":"Provision of Travel Management Services","scope":"MP+4AP","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Alahram Tourism and Travel Company","svcType":"Administration & Hospitality","svcDesc":"Travel Agent","status":"Active","signDate":"2024-10-02","startDate":"2024-10-02","endDate":"2026-10-02","revEndDate":"2026-10-02","ocv":244000,"vo":0,"rcv":244000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"old","img":"https://media.licdn.com/dms/image/v2/D4E0BAQFxhFaQf054oQ/company-logo_200_200/company-logo_200_200/0/1726564571590/alahram_logo?e=2147483647&v=beta&t=UmGeWLwUjrtHWm4L6IgKSoUUe3WJ0Eq7SudBoTNBAQ8","brief":"The service provider delivers end‑to‑end travel management services for RUA employees and guests, ensuring efficient, cost‑effective, and high‑quality arrangements. Services include booking, modifying, and cancelling flights, hotels, transportation, visa services, and travel insurance for both domestic and international travel. The provider also manages airport reception (regular, VIP, and Al‑Tanfeethi), car/bus rentals, private jets, train/metro tickets, cruise trips, and tour packages. Comprehensive support is offered for meetings, events, and corporate reservations, including catering and logistics. A 24/7 dedicated travel desk, rapid response times, competitive pricing, and monthly performance reporting ensure seamless and reliable travel operations.","dataDate":"2026-07-31","planned":0.062412,"actual":0.062412,"ev":15228.57,"cert":15229,"paid":15228.57,"unbilled":0},{"po":"PO-100411","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Alliance Stars Contracting Company-Compass","svcType":"Technical Support","svcDesc":"Provision of Technical Support Services","status":"Active","signDate":"2025-04-27","startDate":"2026-02-01","endDate":"2028-01-31","revEndDate":"2028-01-31","ocv":2100624,"vo":0,"rcv":2100624,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://alliedstar.sa/wp-content/uploads/2023/12/sticky-1.jpg","brief":"The service provider delivers full technical support and consultancy services, deploying qualified resources to work onsite at RUA’s offices in Jeddah and Makkah. Responsibilities include managing design processes, BIM workflows, value engineering, document control, and design reviews across all project stages. The scope further covers site inspections, contractor coordination, procurement strategy support, and managing approvals and permits. The provider must ensure quality, HSE compliance, sustainability management, and structured project controls, reporting, and scheduling. Services also include project close‑out, risk management, PMIS implementation, and maintaining comprehensive project records and governance standards.","dataDate":"2026-07-31","planned":0.098958,"actual":0.098958,"ev":207874.25,"cert":0,"paid":0,"unbilled":207874},{"po":"PO-100344","name":"Ajyad Security Services","scope":"Ajyad","dept":"06-HSSE","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Arabian Security & Safety Services Co. Ltd (amnco)","svcType":"Safety & Security","svcDesc":"Manpower Supply","status":"Active","signDate":"2025-01-01","startDate":"2025-01-01","endDate":"2027-12-31","revEndDate":"2027-12-31","ocv":1832580,"vo":0,"rcv":1832580,"deptOwner":"Farouk Asiri","projOwner":"Farouk Asiri","contrOwner":"Farouk Asiri","pcr":"Tamer Mekawy","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNUb5xc3xvwWtihPhiGc3kzvijD5rNZhWVJQ&s.png","brief":"The security service provider is responsible for delivering comprehensive 24/7 protection of the client’s site, assets, personnel, and facilities through trained security guards, supervisors, and patrol units. Duties include access control, visitor and vehicle management, surveillance, patrolling, incident reporting, and emergency response. The provider must supply all required equipment, vehicles, uniforms, communication tools, and maintain a fully functional control room. They are accountable for investigating security breaches, coordinating with authorities, and ensuring adherence to safety, operational, and regulatory standards. Regular reporting, documentation, manpower management, and seamless operational continuity form integral parts of the service scope.","dataDate":"2026-07-31","planned":0.229628,"actual":0.229628,"ev":420811.29,"cert":0,"paid":0,"unbilled":420811},{"po":"PO-100484","name":"Infrastructure Site Investigation for Demolition Plots A, B & C","scope":"Main Plot","dept":"05-Infrastructure Delivery","program":"KSG","project":"-Earthworks","vendor":"Omraniyoun and Partner Consulting Engineers Company","svcType":"Engineering","svcDesc":"Consultancy Services Agreement","status":"Active","signDate":"2026-04-12","startDate":null,"endDate":null,"revEndDate":"00:00:00","ocv":1495000,"vo":0,"rcv":1495000,"deptOwner":"Stuart Keane","projOwner":"Stuart Keane","contrOwner":"Stuart Keane","pcr":"Mohamed Gamal Baly","img":"https://luxurylifestyleawards.com/wp-content/uploads/2023/04/Screenshot-2023-04-11-101830.png","brief":"The Consultant shall undertake comprehensive infrastructure site investigations for Demolition Plots A, B and C, delivering all required studies, surveys, assessments, and technical reports in accordance with Schedule 2 and Client standards. The scope includes preparing all documents, calculations, and recommendations necessary to support the Client’s development program. The Consultant shall ensure full coordination with the Client, other consultants, and contractors to maintain alignment, compliance, and timely progress. All services must be executed by qualified personnel, with the Consultant responsible for securing permits and ensuring the quality, accuracy, and suitability of all deliverables.","dataDate":"2026-07-31","planned":0,"actual":0,"ev":0,"cert":0,"paid":0,"unbilled":0},{"po":"PO-100454","name":"Consultancy Services Agreement (Unit Sub-Division Services for Ajyad)","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Ossama Al Azzouni Engineering Consulting","svcType":"Engineering","svcDesc":"Consultant - Coordination","status":"Active","signDate":"2026-02-18","startDate":null,"endDate":null,"revEndDate":"00:00:00","ocv":1396450,"vo":0,"rcv":1396450,"deptOwner":"Sameh Gomaa","projOwner":"Sameh Gomaa","contrOwner":"Sameh Gomaa","pcr":"Tamer Mekawy","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIVbieYtmAH9TUSD9jFBXu8vYb0ZfxMt9pAQ&s","brief":"The Client’s obligation to support the Consultant by providing timely access to all information, data, approvals, and site access reasonably required for the proper performance of the Services, while clarifying that such information is shared without any warranty of accuracy or completeness. The Consultant must promptly review all information received, identify discrepancies, and notify the Client, but remains fully responsible for verifying its adequacy and cannot claim additional time or cost due to errors or omissions in the Client’s materials. The Client must also cooperate with the Consultant, facilitate coordination with other stakeholders, and issue decisions or feedback within reasonable timeframes to avoid impacting progress, without relieving the Consultant of its duty to meet all contractual obligations.","dataDate":"2026-07-31","planned":0.12,"actual":0.12,"ev":167574,"cert":0,"paid":0,"unbilled":167574},{"po":"PO-100333","name":"RESEARCH PROJECT CONTRACT (Review of several Studues related to ZAMZAM Well Impact on KSG )","scope":"MP+4AP","dept":"01-Project Development","program":"KSG","project":"-Concept Master Plan","vendor":"King Fahd University of Petroleum & Minerals","svcType":"Study and Research","svcDesc":"Study and Research","status":"Active","signDate":"2025-11-11","startDate":null,"endDate":"2026-05-10","revEndDate":"2026-05-10","ocv":1092500,"vo":0,"rcv":1092500,"deptOwner":"Ahmed Aboubakr","projOwner":"Ahmed Aboubakr","contrOwner":"Arnold Rouverand","pcr":"Ahmed Elshahawy","img":"https://saudipedia.com/var/site/storage/images/5/4/4/8/4488445-1-eng-GB/c0f00012863b-66609.jpg","brief":"The scope of work requires King Fahd University of Petroleum & Minerals to conduct an independent scientific review of the geological, hydrogeological, geotechnical, and environmental studies assessing the impact of the Rua AlHaram Project on the flow of the Zamzam Well, as stated: “Review of Geological, Hydrogeological, Geotechnical and Environmental Studies for Impact of Rua AlHaram Project on the Flow of Zamzam Well.” The work includes evaluating technical methodologies, data interpretation, modeling results, and engineering recommendations through both desktop analysis and targeted field verification. This study aims to ensure the protection, sustainability, and integrity of the Zamzam aquifer amid major construction activities.","dataDate":"2026-07-31","planned":0.4,"actual":0.4,"ev":437000,"cert":218500,"paid":218500,"unbilled":218500},{"po":null,"name":"LEED Gold certification process for Ajyad Development Tower","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Green Business Certification Inc.","svcType":"Engineering","svcDesc":"Consultancy Services","status":"Complete","signDate":null,"startDate":"2025-11-06","endDate":"2025-11-06","revEndDate":"2025-11-06","ocv":5062.5,"vo":0,"rcv":5062.5,"deptOwner":"Sameh Gomaa","projOwner":"Sameh Gomaa","contrOwner":"Sameh Gomaa","pcr":"Tamer Mekawy","img":"https://www.prometric.com/images/_max500/71246/Green-Business-Certification-Inc.-GBCI.webp","brief":"The scope of work covers managing and facilitating the LEED Gold certification process for the Ajyad Development Tower, including registration with the U.S. Green Building Council and submission of all required design documentation. It involves coordinating with Green Business Certification Inc. to ensure compliance with sustainability standards and certification requirements. Responsibilities include overseeing invoice processing, documentation validation, and timely payment endorsements to maintain project progress. The role ensures alignment with the company’s sustainability objectives and supports leadership approvals for certification-related activities. This scope contributes to achieving environmentally responsible development in line with Rua Al Haram Al Makki’s strategic goals.","dataDate":"2026-07-31","planned":1,"actual":1,"ev":5062.5,"cert":5062,"paid":5062.5,"unbilled":0},{"po":"PO-100412","name":"Provision of Technical Support Services","scope":"RUA Wide","dept":"03-Planning, Control, Cost & Contracts","program":"RUA","project":"-RUA","vendor":"Alliance Stars Contracting Company-Compass","svcType":"Technical Support","svcDesc":"Provision of Technical Support Services","status":"Active","signDate":"2025-04-27","startDate":"2026-02-01","endDate":"2027-01-31","revEndDate":"2027-01-31","ocv":1050312,"vo":0,"rcv":1050312,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Hashim Abdulqadir","pcr":"Waseem Subhani","img":"https://alliedstar.sa/wp-content/uploads/2023/12/sticky-1.jpg","brief":"The service provider delivers full technical support and consultancy services, deploying qualified resources to work onsite at RUA’s offices in Jeddah and Makkah. Responsibilities include managing design processes, BIM workflows, value engineering, document control, and design reviews across all project stages. The scope further covers site inspections, contractor coordination, procurement strategy support, and managing approvals and permits. The provider must ensure quality, HSE compliance, sustainability management, and structured project controls, reporting, and scheduling. Services also include project close‑out, risk management, PMIS implementation, and maintaining comprehensive project records and governance standards.","dataDate":"2026-07-31","planned":0.393519,"actual":0.393519,"ev":413317.22,"cert":150739,"paid":0,"unbilled":262578},{"po":"PO-100493","name":"Topographical Site Survey verification project","scope":"MP+4AP","dept":"01-Project Development","program":"KSG","project":"-Detailed Master Plan","vendor":"Saudi Consolidated Engineering Co. (Khatib &Alami)","svcType":"Engineering","svcDesc":"Consultant - Others","status":"Active","signDate":"2026-04-30","startDate":null,"endDate":null,"revEndDate":"00:00:00","ocv":480000,"vo":0,"rcv":480000,"deptOwner":"Ahmed Aboubakr","projOwner":"Ahmed Aboubakr","contrOwner":"Wajdi Haider","pcr":"Mohamed Gamal Baly","img":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJG2QEGBnYaLTcyCC8BJcPllm1R8D-wNVnXw&s.jpg","brief":"The scope of work involves conducting a comprehensive verification of the topographical survey provided by Al Qotr, including detailed data review, gap analysis, and validation against Buro Happold specifications to ensure completeness, accuracy, and compliance. It includes technical assessment of survey control points, independent field verification of selected areas, and comparison of new and existing data to identify discrepancies and confirm alignment with project standards. The consultant will also prepare necessary methodologies, traffic management plans (if required), and reconcile borehole and groundwater data with topographical information. Finally, the work will deliver validated reports, cross-sections, and a complete verified dataset suitable for design and construction within the project timeframe","dataDate":"2026-07-31","planned":0.35,"actual":0.35,"ev":168000.0,"cert":0,"paid":null,"unbilled":168000},{"po":"PO-100370","name":"Development of Ultra Luxury Development at\nPlot 0 in Makkah - AJYAD - Insurance Polices","scope":"Ajyad","dept":"03-Planning, Control, Cost & Contracts","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Marsh Saudi Arabia for Insurance Brokerage","svcType":"Administration & Hospitality","svcDesc":"Service Provider","status":"Complete","signDate":null,"startDate":"2025-12-30","endDate":null,"revEndDate":"00:00:00","ocv":468000,"vo":0,"rcv":468000,"deptOwner":"Hashim Abdulqadir","projOwner":"Hashim Abdulqadir","contrOwner":"Maher Almadani","pcr":"Tamer Mekawy","img":"https://www.consultancy-me.com/profile/media/marsh-spotlight-2025-11-14-080959846.png","brief":"The scope of work involves providing comprehensive security services across the client’s site, ensuring the protection of assets, personnel, and property. It includes managing access control, monitoring site activities, conducting patrols, and preventing unauthorized entry or security breaches. Responsibilities cover incident reporting, emergency response coordination, and maintaining detailed logs and documentation. The security team must supply trained personnel, equipment, vehicles, and communication tools to ensure uninterrupted operations. Overall, the work ensures a safe, secure, and well‑controlled environment aligned with operational and regulatory requirements.","dataDate":"2026-07-31","planned":1,"actual":1,"ev":468000,"cert":0,"paid":0,"unbilled":468000},{"po":"PO-100206","name":"INTERIM TECHNICAL SERVICES AGREEMENT THE RITZ-CARLTON RESIDENCES (From PR)","scope":"Ajyad","dept":"01-Project Development","program":"Ajyad","project":"-Ultra-Luxury Development – Plot-0 (Ajyad)","vendor":"Marriott Int'l Design & Const","svcType":null,"svcDesc":null,"status":"Complete","signDate":"2025-07-01","startDate":"2025-07-01","endDate":"2025-07-30","revEndDate":"2025-07-30","ocv":1361718.75,"vo":0,"rcv":1361718.75,"deptOwner":"Sameh Gomaa","projOwner":"Sameh Gomaa","contrOwner":"Sameh Gomaa","pcr":null,"img":"https://tse1.mm.bing.net/th/id/OIP.X5CQv28NZoVvRcEHXCtZqwHaFz?rs=1&pid=ImgDetMain&o=7&rm=3","brief":"The scope covers MIDCS’s provision of technical advisory services supporting the planning, design, construction, furnishing, and equipping of the Ritz‑Carlton Residences in Makkah, ensuring alignment with Ritz‑Carlton Brand Standards. Services include reviewing design documents, advising Owner and consultants on aesthetics, systems, and compliance requirements, and guiding the development process to meet licensing and operational criteria. MIDCS may engage third‑party specialists while remaining fully responsible for the quality of technical input delivered. The Owner must implement all MIDCS comments, maintain required permits and insurance, and ensure no design or construction changes occur without MIDCS approval. Compensation is structured through an initial installment of USD 87,500 and subsequent additional installments as needed to support ongoing technical services.","dataDate":null,"planned":null,"actual":null,"ev":null,"cert":null,"paid":475781.25,"unbilled":null}];
+let rows = [];
+
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const fmtM=v=>v==null?'N/A':(Math.abs(v)>=1e9?(v/1e9).toFixed(2)+' B':(v/1e6).toFixed(1)+' M');
+const fmtN=v=>v==null?'N/A':v.toLocaleString('en-US',{maximumFractionDigits:0});
+const fmtP=v=>v==null?'—':(v*100).toFixed(1)+'%';
+const sum=(arr,f)=>arr.reduce((a,r)=>a+(typeof r[f]==='number'?r[f]:0),0);
+const uniq=(arr,f)=>[...new Set(arr.map(r=>r[f]).filter(v=>v!=null&&v!==''))].sort();
+
+const PALETTE=['#12808A','#2FB3A8','#B98A3C','#5B7FA6','#7FC6BC','#D89A2B','#8B6FB3','#D6543F','#4C9F70','#9AA9B8'];
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+
+/* ================= FILTER STATE ================= */
+const FILTERS=[
+ {key:'dept',label:'Department'},{key:'scope',label:'Scope'},{key:'program',label:'Program'},
+ {key:'project',label:'Project'},{key:'vendor',label:'Vendor'},{key:'status',label:'Status'},
+ {key:'svcType',label:'Service Type'},{key:'deptOwner',label:'Dept Owner'},
+ {key:'projOwner',label:'Project Owner'},{key:'contrOwner',label:'Contract Owner'},{key:'pcr',label:'PC Rep'}
+];
+let sel={}; FILTERS.forEach(f=>sel[f.key]=new Set());
+let dateFrom=null, dateTo=null, detQuery='';
+
+function buildFilterUI(){
+  const slot=$('#filterSlots'); slot.innerHTML=''; slot.style.display='contents';
+  FILTERS.forEach(f=>{
+    const wrap=document.createElement('div'); wrap.className='fsel'; wrap.dataset.key=f.key;
+    wrap.innerHTML=`<button><span class="lbl">${f.label}</span><span class="cnt" style="display:none"></span> ▾</button>
+      <div class="fdrop"><input type="text" placeholder="Search…">
+      <div class="opts"></div>
+      <div class="fdfoot"><button class="selAll">Select all</button><button class="selNone">Clear</button></div></div>`;
+    slot.appendChild(wrap);
+    const btn=wrap.querySelector(':scope>button'), drop=wrap.querySelector('.fdrop'),
+          search=drop.querySelector('input'), opts=drop.querySelector('.opts');
+    function renderOpts(){
+      const vals=uniq(DATA,f.key), q=search.value.toLowerCase();
+      opts.innerHTML=vals.filter(v=>String(v).toLowerCase().includes(q)).map(v=>
+        `<label><input type="checkbox" value="${String(v).replace(/"/g,'&quot;')}" ${sel[f.key].has(v)?'checked':''}> <span>${v}</span></label>`).join('');
+      opts.querySelectorAll('input').forEach(cb=>cb.onchange=()=>{
+        cb.checked?sel[f.key].add(cb.value):sel[f.key].delete(cb.value); apply();
+        updateBtn();
+      });
+    }
+    function updateBtn(){
+      const n=sel[f.key].size, cnt=btn.querySelector('.cnt');
+      btn.classList.toggle('on',n>0); cnt.style.display=n?'inline-block':'none'; cnt.textContent=n;
+    }
+    btn.onclick=e=>{e.stopPropagation();const was=drop.classList.contains('open');
+      $$('.fdrop').forEach(d=>d.classList.remove('open'));
+      if(!was){renderOpts();drop.classList.add('open');search.focus();}};
+    search.oninput=renderOpts;
+    drop.onclick=e=>e.stopPropagation();
+    drop.querySelector('.selAll').onclick=()=>{uniq(DATA,f.key).forEach(v=>sel[f.key].add(v));renderOpts();updateBtn();apply()};
+    drop.querySelector('.selNone').onclick=()=>{sel[f.key].clear();renderOpts();updateBtn();apply()};
+    wrap._update=updateBtn;
+  });
+}
+document.addEventListener('click',()=>$$('.fdrop').forEach(d=>d.classList.remove('open')));
+$('#dateFrom').onchange=e=>{dateFrom=e.target.value||null;apply()};
+$('#dateTo').onchange=e=>{dateTo=e.target.value||null;apply()};
+$('#clearAll').onclick=()=>{FILTERS.forEach(f=>sel[f.key].clear());dateFrom=dateTo=null;
+  $('#dateFrom').value='';$('#dateTo').value='';$$('.fsel').forEach(w=>w._update&&w._update());apply()};
+
+function filterRows(){
+  return DATA.filter(r=>{
+    for(const f of FILTERS){if(sel[f.key].size&&!sel[f.key].has(String(r[f.key])))return false;}
+    if(dateFrom&&(!r.signDate||r.signDate<dateFrom))return false;
+    if(dateTo&&(!r.signDate||r.signDate>dateTo))return false;
+    return true;
+  });
+}
+function ctxText(){
+  const parts=[];
+  FILTERS.forEach(f=>{if(sel[f.key].size)parts.push(`${f.label}: ${[...sel[f.key]].slice(0,2).join(', ')}${sel[f.key].size>2?` +${sel[f.key].size-2}`:''}`)});
+  if(dateFrom||dateTo)parts.push(`Signed ${dateFrom||'…'} → ${dateTo||'…'}`);
+  return parts.length?parts.join('  ·  '):'Showing full portfolio';
+}
+
+/* ================= CHARTS ================= */
+let charts={};
+function mkChart(id,cfg){ if(charts[id])charts[id].destroy();
+  cfg.options=cfg.options||{}; cfg.options.responsive=true; cfg.options.maintainAspectRatio=false;
+  cfg.options.animation={duration:350};
+  charts[id]=new Chart($('#'+id),cfg); return charts[id];}
+function baseOpts(){
+  const grid=css('--line'), tick=css('--ink2');
+  Chart.defaults.color=tick; Chart.defaults.font.family='"Segoe UI",system-ui,sans-serif'; Chart.defaults.font.size=10.5;
+  return {grid,tick};
+}
+
+/* ================= RENDER ================= */
+function apply(){
+  rows=filterRows();
+  $('#filterCtx').textContent=ctxText();
+  renderKPIs(); renderPage1(); renderPage2(); renderPage3(); renderPage4();
+}
+
+function renderKPIs(){
+  const nC=rows.length,
+    programs=uniq(rows,'program').length, projects=uniq(rows,'project').length, vendors=uniq(rows,'vendor').length,
+    active=rows.filter(r=>r.status==='Active').length, complete=rows.filter(r=>r.status==='Complete').length,
+    behind=rows.filter(r=>typeof r.planned==='number'&&typeof r.actual==='number'&&(r.actual-r.planned)<-0.05).length;
+  const ocv=sum(rows,'ocv'), vo=sum(rows,'vo'), rcv=sum(rows,'rcv'), ev=sum(rows,'ev'),
+        cert=sum(rows,'cert'), paid=sum(rows,'paid'), unb=sum(rows,'unbilled');
+  // weighted progress
+  const wRows=rows.filter(r=>typeof r.planned==='number'&&typeof r.actual==='number'&&r.rcv>0);
+  const wr=sum(wRows,'rcv'), wPl=wRows.reduce((a,r)=>a+r.planned*r.rcv,0)/(wr||1), wAc=wRows.reduce((a,r)=>a+r.actual*r.rcv,0)/(wr||1);
+
+  $('#k_contracts').textContent=nC;
+  $('#k_contracts_s').textContent=fmtM(rcv)+' SAR revised value';
+  $('#k_programs').textContent=programs; $('#k_programs_s').textContent='across portfolio';
+  $('#k_projects').textContent=projects; $('#k_projects_s').textContent='mapped projects';
+  $('#k_vendors').textContent=vendors; $('#k_vendors_s').textContent='service providers';
+  $('#k_active').textContent=active; $('#k_active_s').textContent=nC?((active/nC*100).toFixed(0)+'% of contracts'):'';
+  $('#k_complete').textContent=complete; $('#k_complete_s').textContent=nC?((complete/nC*100).toFixed(0)+'% of contracts'):'';
+  $('#k_behind').textContent=behind;
+  $('#k_prog').innerHTML=fmtP(wAc);
+  const dv=(wAc-wPl)*100;
+  $('#k_prog_s').innerHTML=`vs plan ${fmtP(wPl)} <b class="${dv>=0?'up':'down'}">${dv>=0?'▲':'▼'} ${Math.abs(dv).toFixed(1)} pts</b>`;
+
+  $('#c_ocv').textContent=fmtM(ocv);
+  $('#c_vo').textContent=(vo>=0?'+':'')+fmtM(vo); $('#c_vo_p').textContent=ocv?((vo/ocv*100).toFixed(1)+'% of original'):'';
+  $('#c_rcv').textContent=fmtM(rcv); $('#c_rcv_p').textContent='current commitment';
+  $('#c_ev').textContent=fmtM(ev); $('#c_ev_p').textContent=rcv?((ev/rcv*100).toFixed(1)+'% of revised'):'';
+  $('#c_cert').textContent=fmtM(cert); $('#c_cert_p').textContent=ev?((cert/ev*100).toFixed(1)+'% of earned'):'';
+  $('#c_paid').textContent=fmtM(paid); $('#c_paid_p').textContent=cert?((paid/cert*100).toFixed(1)+'% of certified'):'';
+  $('#c_unb').textContent=fmtM(unb); $('#c_unb_p').textContent='earned not yet billed';
+}
+
+function renderPage1(){
+  const o=baseOpts();
+  const ocv=sum(rows,'ocv')/1e6, vo=sum(rows,'vo')/1e6, rcv=sum(rows,'rcv')/1e6,
+        ev=sum(rows,'ev')/1e6, cert=sum(rows,'cert')/1e6, paid=sum(rows,'paid')/1e6;
+  // waterfall floating bars
+  mkChart('chWaterfall',{type:'bar',data:{
+    labels:['Original','VOs','Revised','Earned','Certified','Paid'],
+    datasets:[{data:[[0,ocv],[ocv,ocv+vo],[0,rcv],[0,ev],[0,cert],[0,paid]],
+      backgroundColor:['#12808A','#B98A3C','#2FB3A8','#5B7FA6','#7FC6BC','#1E9E6A'],borderRadius:6,borderSkipped:false}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+      const v=c.raw; return (Array.isArray(v)?(v[1]-v[0]):v).toFixed(1)+' M SAR';}}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:o.grid},title:{display:true,text:'SAR Million'}}}}});
+
+  // program pie
+  const progs=uniq(rows,'program');
+  mkChart('chProgPie',{type:'doughnut',data:{labels:progs,
+    datasets:[{data:progs.map(p=>sum(rows.filter(r=>r.program===p),'rcv')/1e6),backgroundColor:PALETTE,borderWidth:2,borderColor:css('--surface')}]},
+    options:{cutout:'55%',plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8}},
+      tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed.toFixed(1)} M (${(c.parsed/(sum(rows,'rcv')/1e6)*100).toFixed(1)}%)`}}}}});
+
+  // status pie
+  const sts=uniq(rows,'status');
+  mkChart('chStatusPie',{type:'pie',data:{labels:sts,
+    datasets:[{data:sts.map(s=>rows.filter(r=>r.status===s).length),backgroundColor:['#12808A','#B98A3C','#D6543F'],borderWidth:2,borderColor:css('--surface')}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10}}}}});
+
+  // gauge: weighted planned vs actual
+  const wRows=rows.filter(r=>typeof r.planned==='number'&&typeof r.actual==='number'&&r.rcv>0);
+  const wr=sum(wRows,'rcv')||1, wPl=wRows.reduce((a,r)=>a+r.planned*r.rcv,0)/wr*100, wAc=wRows.reduce((a,r)=>a+r.actual*r.rcv,0)/wr*100;
+  mkChart('chGauge',{type:'doughnut',data:{labels:['Actual','Remaining'],
+    datasets:[
+      {data:[wAc,100-wAc],backgroundColor:['#2FB3A8',css('--line')],borderWidth:0,cutout:'70%',circumference:270,rotation:225},
+      {data:[wPl,100-wPl],backgroundColor:['#B98A3C',
+        'transparent'],borderWidth:0,cutout:'85%',circumference:270,rotation:225,weight:.45}]},
+    options:{plugins:{legend:{display:false},tooltip:{enabled:false}}},
+    plugins:[{id:'ctr',afterDraw(c){const {ctx,chartArea:a}=c;ctx.save();
+      ctx.textAlign='center';ctx.fillStyle=css('--ink');ctx.font='700 22px "Segoe UI"';
+      ctx.fillText(wAc.toFixed(1)+'%',(a.left+a.right)/2,(a.top+a.bottom)/2+2);
+      ctx.fillStyle=css('--ink2');ctx.font='600 10px "Segoe UI"';
+      ctx.fillText('plan '+wPl.toFixed(1)+'%',(a.left+a.right)/2,(a.top+a.bottom)/2+18);ctx.restore();}}]});
+
+  // quarterly awards
+  const byQ={};
+  rows.forEach(r=>{if(!r.signDate)return;const y=r.signDate.slice(0,4),m=+r.signDate.slice(5,7);
+    const q=`${y}-Q${Math.ceil(m/3)}`;(byQ[q]=byQ[q]||{n:0,v:0});byQ[q].n++;byQ[q].v+=r.ocv||0;});
+  const qs=Object.keys(byQ).sort();
+  mkChart('chQuarter',{data:{labels:qs,datasets:[
+    {type:'bar',label:'Awarded value (SAR M)',data:qs.map(q=>byQ[q].v/1e6),backgroundColor:'rgba(18,128,138,.55)',borderRadius:5,yAxisID:'y'},
+    {type:'line',label:'Contracts awarded',data:qs.map(q=>byQ[q].n),borderColor:'#B98A3C',backgroundColor:'#B98A3C',tension:.35,yAxisID:'y1',pointRadius:3}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:o.grid},title:{display:true,text:'SAR M'}},
+        y1:{position:'right',grid:{display:false},title:{display:true,text:'Count'},ticks:{precision:0}}}}});
+
+  // ECP by program
+  mkChart('chECP',{type:'bar',data:{labels:progs,datasets:[
+    {label:'Earned',data:progs.map(p=>sum(rows.filter(r=>r.program===p),'ev')/1e6),backgroundColor:'#5B7FA6',borderRadius:4},
+    {label:'Certified',data:progs.map(p=>sum(rows.filter(r=>r.program===p),'cert')/1e6),backgroundColor:'#2FB3A8',borderRadius:4},
+    {label:'Paid',data:progs.map(p=>sum(rows.filter(r=>r.program===p),'paid')/1e6),backgroundColor:'#B98A3C',borderRadius:4}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:o.grid}}}}});
+}
+
+function renderPage2(){
+  const o=baseOpts();
+  const hbar=(id,field,valFn,color)=>{
+    const cats=uniq(rows,field).map(c=>({c,v:valFn(rows.filter(r=>r[field]===c))})).sort((a,b)=>b.v-a.v);
+    mkChart(id,{type:'bar',data:{labels:cats.map(x=>x.c),datasets:[{data:cats.map(x=>x.v),backgroundColor:color,borderRadius:5}]},
+      options:{indexAxis:'y',plugins:{legend:{display:false}},
+        scales:{x:{grid:{color:o.grid}},y:{grid:{display:false},ticks:{autoSkip:false,font:{size:9.5}}}}}});
+  };
+  hbar('chDept','dept',g=>sum(g,'rcv')/1e6,'#12808A');
+  hbar('chScope','scope',g=>sum(g,'rcv')/1e6,'#2FB3A8');
+  hbar('chSvc','svcType',g=>g.length,'#B98A3C');
+
+  const vend=uniq(rows,'vendor').map(v=>({v,x:sum(rows.filter(r=>r.vendor===v),'rcv')/1e6}))
+    .sort((a,b)=>b.x-a.x).slice(0,10);
+  mkChart('chVendors',{type:'bar',data:{labels:vend.map(x=>x.v.length>34?x.v.slice(0,32)+'…':x.v),
+    datasets:[{data:vend.map(x=>x.x),backgroundColor:PALETTE,borderRadius:5}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:o.grid}},y:{grid:{display:false},ticks:{autoSkip:false,font:{size:9}}}}}});
+
+  // program scorecard
+  const progs=uniq(rows,'program');
+  let html=`<thead><tr><th>Program</th><th class="num">Contracts</th><th class="num">Revised (M)</th>
+    <th class="num">Earned (M)</th><th class="num">Certified (M)</th><th class="num">Paid (M)</th>
+    <th class="num">Planned</th><th class="num">Actual</th><th>Progress</th></tr></thead><tbody>`;
+  progs.forEach(p=>{
+    const g=rows.filter(r=>r.program===p), rcv=sum(g,'rcv');
+    const w=g.filter(r=>typeof r.planned==='number'&&r.rcv>0), wr=sum(w,'rcv')||1;
+    const pl=w.reduce((a,r)=>a+r.planned*r.rcv,0)/wr, ac=w.reduce((a,r)=>a+(r.actual||0)*r.rcv,0)/wr;
+    html+=`<tr><td><b>${p}</b></td><td class="num">${g.length}</td><td class="num">${(rcv/1e6).toFixed(1)}</td>
+      <td class="num">${(sum(g,'ev')/1e6).toFixed(1)}</td><td class="num">${(sum(g,'cert')/1e6).toFixed(1)}</td>
+      <td class="num">${(sum(g,'paid')/1e6).toFixed(1)}</td>
+      <td class="num">${fmtP(pl)}</td><td class="num ${ac>=pl?'vpos':'vneg'}">${fmtP(ac)}</td>
+      <td><div class="bar"><i style="width:${Math.min(100,ac*100)}%"></i></div></td></tr>`;
+  });
+  $('#tblProg').innerHTML=html+'</tbody>';
+}
+
+function renderPage3(){
+  const o=baseOpts();
+  // S-curve: cumulative awarded OCV by month of sign date
+  const byM={};
+  rows.forEach(r=>{if(!r.signDate)return;const m=r.signDate.slice(0,7);byM[m]=(byM[m]||0)+(r.ocv||0);});
+  const ms=Object.keys(byM).sort(); let cum=0;
+  const cumV=ms.map(m=>{cum+=byM[m];return cum/1e6;});
+  mkChart('chSCurve',{type:'line',data:{labels:ms,datasets:[
+    {label:'Cumulative awarded (SAR M)',data:cumV,borderColor:'#12808A',backgroundColor:'rgba(18,128,138,.18)',fill:true,tension:.35,pointRadius:2}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10}}},
+      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12}},y:{grid:{color:o.grid}}}}});
+
+  // scatter planned vs actual
+  const pts=rows.filter(r=>typeof r.planned==='number'&&typeof r.actual==='number');
+  mkChart('chScatter',{type:'bubble',data:{datasets:[
+    {label:'On / ahead of plan',data:pts.filter(r=>r.actual>=r.planned-0.05).map(r=>({x:r.planned*100,y:r.actual*100,r:Math.max(3,Math.sqrt((r.rcv||0)/1e6)*.9),n:r.name})),backgroundColor:'rgba(47,179,168,.6)'},
+    {label:'Behind plan (>5 pts)',data:pts.filter(r=>r.actual<r.planned-0.05).map(r=>({x:r.planned*100,y:r.actual*100,r:Math.max(3,Math.sqrt((r.rcv||0)/1e6)*.9),n:r.name})),backgroundColor:'rgba(214,84,63,.65)'}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10}},
+      tooltip:{callbacks:{label:c=>` ${c.raw.n?.slice(0,44)}: P ${c.raw.x.toFixed(0)}% / A ${c.raw.y.toFixed(0)}%`}}},
+      scales:{x:{min:0,max:105,title:{display:true,text:'Planned %'},grid:{color:o.grid}},
+              y:{min:0,max:105,title:{display:true,text:'Actual %'},grid:{color:o.grid}}}}});
+
+  // top 12 contracts ECP
+  const top=[...rows].sort((a,b)=>(b.ev||0)-(a.ev||0)).slice(0,12);
+  mkChart('chTopEcp',{type:'bar',data:{labels:top.map(r=>r.name.length>36?r.name.slice(0,34)+'…':r.name),
+    datasets:[{label:'Earned',data:top.map(r=>(r.ev||0)/1e6),backgroundColor:'#5B7FA6',borderRadius:3},
+      {label:'Certified',data:top.map(r=>(r.cert||0)/1e6),backgroundColor:'#2FB3A8',borderRadius:3},
+      {label:'Paid',data:top.map(r=>(r.paid||0)/1e6),backgroundColor:'#B98A3C',borderRadius:3}]},
+    options:{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{boxWidth:10}}},
+      scales:{x:{grid:{color:o.grid}},y:{grid:{display:false},ticks:{autoSkip:false,font:{size:8.6}}}}}});
+
+  // attention list
+  const risk=rows.filter(r=>typeof r.planned==='number'&&typeof r.actual==='number')
+    .map(r=>({...r,varc:(r.actual-r.planned)})).filter(r=>r.varc<0).sort((a,b)=>a.varc-b.varc).slice(0,14);
+  let html=`<thead><tr><th>Contract</th><th>Vendor</th><th class="num">Revised (M)</th>
+    <th class="num">Planned</th><th class="num">Actual</th><th class="num">Var (pts)</th></tr></thead><tbody>`;
+  risk.forEach(r=>{html+=`<tr data-po="${r.po||''}" data-name="${(r.name||'').replace(/"/g,'&quot;')}">
+    <td>${r.name?.slice(0,58)}</td><td>${(r.vendor||'').slice(0,30)}</td>
+    <td class="num">${((r.rcv||0)/1e6).toFixed(1)}</td>
+    <td class="num">${fmtP(r.planned)}</td><td class="num">${fmtP(r.actual)}</td>
+    <td class="num vneg">${(r.varc*100).toFixed(1)}</td></tr>`;});
+  if(!risk.length)html+=`<tr><td colspan="6" style="color:var(--ink2);padding:14px">No contracts behind plan in current selection.</td></tr>`;
+  $('#tblRisk').innerHTML=html+'</tbody>';
+  $('#tblRisk').querySelectorAll('tbody tr[data-name]').forEach(tr=>tr.onclick=()=>openModalByName(tr.dataset.name));
+}
+
+/* details table */
+let sortKey='rcv', sortDir=-1;
+function renderPage4(){
+  const q=detQuery.toLowerCase();
+  let list=rows.filter(r=>!q||[r.name,r.vendor,r.program,r.project,r.deptOwner,r.projOwner,r.contrOwner,r.pcr,r.po]
+    .some(v=>v&&String(v).toLowerCase().includes(q)));
+  list=[...list].sort((a,b)=>{const x=a[sortKey],y=b[sortKey];
+    if(x==null)return 1;if(y==null)return -1;
+    return (typeof x==='number'?x-y:String(x).localeCompare(String(y)))*sortDir;});
+  $('#detCount').textContent=`· ${list.length} contracts`;
+  const cols=[['img',''],['name','Contract'],['program','Program'],['project','Project'],['vendor','Vendor'],
+    ['status','Status'],['signDate','Signed'],['endDate','End'],['ocv','Original (M)'],['vo','VOs (M)'],
+    ['rcv','Revised (M)'],['planned','Plan %'],['actual','Act %'],['ev','Earned (M)'],['cert','Cert (M)'],['paid','Paid (M)']];
+  let html='<thead><tr>'+cols.map(c=>`<th class="${['ocv','vo','rcv','planned','actual','ev','cert','paid'].includes(c[0])?'num':''}" data-k="${c[0]}">${c[1]}</th>`).join('')+'</tr></thead><tbody>';
+  list.forEach((r,i)=>{
+    html+=`<tr data-i="${DATA.indexOf(r)}">
+      <td>${r.img?`<img class="logo" src="${r.img}" loading="lazy" onerror="this.style.visibility='hidden'">`:''}</td>
+      <td style="max-width:280px"><b>${r.name?.slice(0,70)||''}</b><div style="color:var(--ink3);font-size:9.5px">${r.po||''}</div></td>
+      <td>${r.program||''}</td><td>${(r.project||'').replace(/^-/,'')}</td>
+      <td style="max-width:170px">${(r.vendor||'').slice(0,40)}</td>
+      <td><span class="pill ${r.status}">${r.status||''}</span></td>
+      <td>${r.signDate||'—'}</td><td>${r.revEndDate||r.endDate||'—'}</td>
+      <td class="num">${r.ocv!=null?(r.ocv/1e6).toFixed(2):'N/A'}</td>
+      <td class="num">${r.vo!=null?(r.vo/1e6).toFixed(2):'N/A'}</td>
+      <td class="num"><b>${r.rcv!=null?(r.rcv/1e6).toFixed(2):'N/A'}</b></td>
+      <td class="num">${fmtP(r.planned)}</td>
+      <td class="num ${typeof r.actual==='number'&&typeof r.planned==='number'?(r.actual>=r.planned-0.001?'vpos':'vneg'):''}">${fmtP(r.actual)}</td>
+      <td class="num">${r.ev!=null?(r.ev/1e6).toFixed(2):'N/A'}</td>
+      <td class="num">${r.cert!=null?(r.cert/1e6).toFixed(2):'N/A'}</td>
+      <td class="num">${r.paid!=null?(r.paid/1e6).toFixed(2):'N/A'}</td></tr>`;
+  });
+  $('#tblDetails').innerHTML=html+'</tbody>';
+  $('#tblDetails').querySelectorAll('thead th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k; if(k===sortKey)sortDir*=-1;else{sortKey=k;sortDir=-1;} renderPage4();});
+  $('#tblDetails').querySelectorAll('tbody tr').forEach(tr=>tr.onclick=()=>openModal(DATA[+tr.dataset.i]));
+}
+$('#detSearch').oninput=e=>{detQuery=e.target.value;renderPage4()};
+
+/* modal */
+function openModalByName(n){const r=DATA.find(x=>x.name===n);if(r)openModal(r);}
+function openModal(r){
+  const it=(l,v)=>`<div class="mitem"><div class="ml">${l}</div><div class="mv">${v??'N/A — Data Not Available'}</div></div>`;
+  $('#modalBody').innerHTML=`
+    <div class="mtop">
+      ${r.img?`<img class="big" src="${r.img}" onerror="this.style.display='none'">`:''}
+      <div><h2>${r.name||''}</h2>
+        <div style="color:var(--ink2);font-size:12px;margin-top:4px">${r.po?r.po+' · ':''}${r.vendor||''}</div>
+        <div style="margin-top:8px" class="chipRow">
+          <span class="chip">${r.program||'—'}</span><span class="chip">${(r.project||'—').replace(/^-/,'')}</span>
+          <span class="pill ${r.status}" style="align-self:center">${r.status||''}</span></div>
+      </div></div>
+    <div class="mgrid">
+      ${it('Scope',r.scope)}${it('Department',r.dept)}${it('Service type',r.svcType)}${it('Service description',r.svcDesc)}
+      ${it('Sign date',r.signDate)}${it('Commencement',r.startDate)}${it('Completion',r.endDate)}${it('Revised completion',r.revEndDate)}
+      ${it('Original value',r.ocv!=null?fmtN(r.ocv)+' SAR':null)}${it('Approved VOs',r.vo!=null?fmtN(r.vo)+' SAR':null)}
+      ${it('Revised value',r.rcv!=null?fmtN(r.rcv)+' SAR':null)}${it('Unbilled execution',r.unbilled!=null?fmtN(r.unbilled)+' SAR':null)}
+      ${it('Earned to date',r.ev!=null?fmtN(r.ev)+' SAR':null)}${it('Certified to date',r.cert!=null?fmtN(r.cert)+' SAR':null)}
+      ${it('Paid to date',r.paid!=null?fmtN(r.paid)+' SAR':null)}${it('Planned / Actual',(r.planned!=null?fmtP(r.planned):'—')+' / '+(r.actual!=null?fmtP(r.actual):'—'))}
+      ${it('Department owner',r.deptOwner)}${it('Project owner',r.projOwner)}${it('Contract owner',r.contrOwner)}${it('PC representative',r.pcr)}
+    </div>
+    ${r.brief?`<div class="brief"><b style="color:var(--ink)">Brief scope of work.</b> ${r.brief}</div>`:''}`;
+  $('#modal').classList.add('open');
+}
+$('#modalClose').onclick=()=>$('#modal').classList.remove('open');
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').classList.remove('open')};
+
+/* ================= NAV / THEME ================= */
+const TITLES={pg1:['Executive Summary','CEO-level portfolio overview — all values in SAR'],
+  pg2:['Program & Project Performance','Value and progress by program, department, scope and vendor'],
+  pg3:['Contract Performance','S-curve, progress variance and financial control per contract'],
+  pg4:['Contract Details','Full contract register — click any row for the contract card']};
+$$('.navBtn').forEach(b=>b.onclick=()=>{
+  $$('.navBtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  $$('.page').forEach(p=>p.classList.remove('active'));$('#'+b.dataset.page).classList.add('active');
+  $('#pageTitle').textContent=TITLES[b.dataset.page][0];$('#pageSub').textContent=TITLES[b.dataset.page][1];
+  apply();
+});
+$('#themeBtn').onclick=()=>{
+  const dark=document.documentElement.dataset.theme==='dark';
+  document.documentElement.dataset.theme=dark?'light':'dark';
+  $('#themeLbl').textContent=dark?'Dark':'Light';
+  apply();
+};
+
+/* ================= IMPORT / EXPORT ================= */
+$('#exportBtn').onclick=e=>{e.stopPropagation();$('#exportMenu').classList.toggle('open')};
+document.addEventListener('click',()=>$('#exportMenu').classList.remove('open'));
+const EXP_COLS=[['po','PO#'],['name','Contract Description'],['scope','Scope'],['dept','Department'],['program','Program'],
+ ['project','Project'],['vendor','Vendor'],['svcType','Contract Service Type'],['status','Contract Status'],
+ ['signDate','Contract Sign Date'],['startDate','Effective Commencement Date'],['endDate','Contract Completion Date'],
+ ['revEndDate','Revised Contract Completion Date'],['ocv','Original Contract Value'],['vo','Approved Vos'],
+ ['rcv','Revised Contract Value'],['planned','Planned %'],['actual','Actual %'],['ev','Earned Value to Date'],
+ ['cert','Certified to Date'],['paid','Paid To Date'],['unbilled','Unbilled Execution to Date'],
+ ['deptOwner','Department Owner'],['projOwner','Project Owner'],['contrOwner','Contract Owner'],['pcr','Project Control Representative']];
+function exportSheet(type){
+  const aoa=[EXP_COLS.map(c=>c[1]),...rows.map(r=>EXP_COLS.map(c=>r[c[0]]??''))];
+  const ws=XLSX.utils.aoa_to_sheet(aoa), wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Contracts');
+  XLSX.writeFile(wb,'contract_portfolio.'+type,type==='csv'?{bookType:'csv'}:undefined);
+}
+async function exportPNG(){
+  const el=$('#stage .page.active');
+  const cv=await html2canvas(el,{backgroundColor:css('--bg'),scale:2});
+  const a=document.createElement('a');a.download='dashboard.png';a.href=cv.toDataURL('image/png');a.click();
+}
+async function exportPPTX(){
+  const pptx=new PptxGenJS();pptx.defineLayout({name:'W',width:13.33,height:7.5});pptx.layout='W';
+  const pages=['pg1','pg2','pg3'];
+  const cur=$('#stage .page.active').id;
+  for(const pid of pages){
+    $$('.page').forEach(p=>p.classList.remove('active'));$('#'+pid).classList.add('active');apply();
+    await new Promise(r=>setTimeout(r,600));
+    const cv=await html2canvas($('#'+pid),{backgroundColor:css('--bg'),scale:1.6});
+    const s=pptx.addSlide();
+    s.addImage({data:cv.toDataURL('image/png'),x:0,y:0,w:13.33,h:7.5});
+  }
+  $$('.page').forEach(p=>p.classList.remove('active'));$('#'+cur).classList.add('active');apply();
+  pptx.writeFile({fileName:'Executive_Contract_Dashboard.pptx'});
+}
+$('#exportMenu').querySelectorAll('button[data-x]').forEach(b=>b.onclick=()=>{
+  const x=b.dataset.x;$('#exportMenu').classList.remove('open');
+  if(x==='xlsx')exportSheet('xlsx'); else if(x==='csv')exportSheet('csv');
+  else if(x==='png')exportPNG(); else if(x==='pdf')window.print(); else if(x==='pptx')exportPPTX();
+});
+
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const js=XLSX.utils.sheet_to_json(ws,{defval:null});
+    const norm=s=>String(s||'').toLowerCase().replace(/[^a-z%#]/g,'');
+    const M={'po#':'po','contractdescription':'name','scope':'scope','department':'dept','program':'program',
+      'project':'project','vendor':'vendor','contractservicetype':'svcType','contractservicedescription':'svcDesc',
+      'contractstatus':'status','contractsigndate':'signDate','effectivecommencementdate':'startDate',
+      'contractcompletiondate':'endDate','revisedcontractcompletiondate':'revEndDate',
+      'originalcontractvalue':'ocv','approvedvos':'vo','revisedcontractvalue':'rcv',
+      'ruadepartmentowner':'deptOwner','departmentowner':'deptOwner','ruaprojectowner':'projOwner','projectowner':'projOwner',
+      'ruacontractowner':'contrOwner','contractowner':'contrOwner','projectcontrolrepresentative':'pcr',
+      'image':'img','briefscopeofwork':'brief','date':'dataDate','planned%':'planned','actual%':'actual',
+      'earndvaluetodate':'ev','earnedvaluetodate':'ev','certifiedtodate':'cert','paidtodate':'paid','unbilledexecutiontodate':'unbilled'};
+    const d2s=v=>v instanceof Date?v.toISOString().slice(0,10):(typeof v==='string'&&/^\d{4}-\d{2}/.test(v)?v.slice(0,10):v);
+    const out=js.map(row=>{const o={};for(const k in row){const mk=M[norm(k)];if(mk)o[mk]=row[k];}
+      ['signDate','startDate','endDate','revEndDate','dataDate'].forEach(k=>o[k]=d2s(o[k]));
+      ['ocv','vo','rcv','ev','cert','paid','unbilled','planned','actual'].forEach(k=>{if(typeof o[k]==='string')o[k]=parseFloat(o[k].replace(/,/g,''))||null;});
+      return o;}).filter(o=>o.name);
+    if(!out.length){alert('No recognizable contract rows found. Please check the column headers match the template.');return;}
+    DATA=out; FILTERS.forEach(f=>sel[f.key].clear()); buildFilterUI(); setDataDate(); apply();
+  };
+  rd.readAsArrayBuffer(file); e.target.value='';
+};
+
+function setDataDate(){
+  const d=DATA.map(r=>r.dataDate).filter(Boolean).sort().pop();
+  $('#dataDate').textContent=d||new Date().toISOString().slice(0,10);
+}
+
+/* ================= INIT ================= */
+buildFilterUI(); setDataDate(); apply();
+</script>
+</body>
+</html>
